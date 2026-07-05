@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+enum Role {
+  SUPER_ADMIN
+  MANAGER
+  SALES
+  FULFILLMENT
+}
+
+enum TicketStatus {
+  PENDING
+  NEEDS_CORRECTION
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  REJECTED
+}
+
+enum PadStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  PAID
+}
+
+enum PlanStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+}
+
+enum PlanType {
+  MONTHLY
+  YEARLY
+}
+
+model Company {
+  id                 String     @id @default(uuid())
+  name               String
+  planStatus         PlanStatus @default(TRIAL)
+  planType           PlanType?
+  trialEndsAt        DateTime?
+  planEndsAt         DateTime?
+  isDeleted          Boolean    @default(false)
+
+  // Dynamic Settings
+  maxPadLimit        Int        @default(45000)
+  allowSalesChat     Boolean    @default(true)
+  requireManagerApproval Boolean @default(true)
+
+  
+  users              User[]
+  tickets            Ticket[]
+  ticketPads         TicketPad[]
+  auditLogs          AuditLog[]
+  messages           Message[]
+  
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+}
+
+model User {
+  id              String      @id @default(uuid())
+  name            String
+  email           String      @unique
+  password        String
+  role            Role
+  isActive        Boolean     @default(true)
+  profilePictureUrl String?
+  paymentAccountType String?
+  paymentAccountNumber String?
+  
+  // A user belongs to a company (SUPER_ADMIN might not belong to any)
+  companyId       String?
+  company         Company?    @relation(fields: [companyId], references: [id])
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  ticketsCreated  Ticket[]    @relation("CreatedTickets")
+  ticketsAssigned Ticket[]    @relation("AssignedTickets")
+  ticketsApproved Ticket[]    @relation("ApprovedTickets")
+  padsAssigned    TicketPad[] @relation("AssignedPads")
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+  messagesSent    Message[] @relation("MessagesSent")
+  messagesReceived Message[] @relation("MessagesReceived")
+  pushSubscriptions PushSubscription[]
+}
+
+model Ticket {
+  id                  String       @id @default(uuid())
+  
+  companyId           String
+  company             Company      @relation(fields: [companyId], references: [id])
+  
+  createdById         String
+  createdBy           User         @relation("CreatedTickets", fields: [createdById], references: [id])
+  assignedToId        String?
+  assignedTo          User?        @relation("AssignedTickets", fields: [assignedToId], references: [id])
+  approvedById        String?
+  approvedBy          User?        @relation("ApprovedTickets", fields: [approvedById], references: [id])
+
+  transactionId       String       @unique
+  paymentProofUrl     String
+  status              TicketStatus @default(PENDING)
+  fulfillmentProofUrl String?
+  genericData         Json?        // For neutral, flexible business data
+  
+  padId               String?
+  pad                 TicketPad?   @relation(fields: [padId], references: [id])
+  
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  auditLogs           AuditLog[]
+}
+
+model TicketPad {
+  id              String       @id @default(uuid())
+  
+  companyId       String
+  company         Company      @relation(fields: [companyId], references: [id])
+  
+  name            String
+  color           String       @default("#4f46e5")
+  totalTickets    Int
+  ticketsUsed     Int          @default(0)
+  
+  assignedToId    String
+  assignedTo      User         @relation("AssignedPads", fields: [assignedToId], references: [id])
+  
+  status          PadStatus    @default(PENDING)
+  extraPaidOff    Boolean      @default(false)
+  extraPaymentProofUrl String?
+  extraPaymentNotes String?
+  
+  tickets         Ticket[]
+  
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model AuditLog {
+  id              String       @id @default(uuid())
+  
+  companyId       String
+  company         Company      @relation(fields: [companyId], references: [id])
+  
+  ticketId        String
+  ticket          Ticket       @relation(fields: [ticketId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  
+  action          String
+  previousStatus  TicketStatus?
+  newStatus       TicketStatus?
+  timestamp       DateTime     @default(now())
+}
+
+model Notification {
+  id              String       @id @default(uuid())
+  companyId       String
+  
+  userId          String       // Target user (e.g., manager receiving it, or sales agent receiving it)
+  user            User         @relation(fields: [userId], references: [id])
+  
+  title           String
+  message         String
+  isRead          Boolean      @default(false)
+  
+  createdAt       DateTime     @default(now())
+}
+
+model Message {
+  id              String       @id @default(uuid())
+  companyId       String
+  company         Company      @relation(fields: [companyId], references: [id])
+  senderId        String
+  sender          User         @relation("MessagesSent", fields: [senderId], references: [id])
+  receiverId      String?
+  receiver        User?        @relation("MessagesReceived", fields: [receiverId], references: [id])
+  content         String?
+  imageUrl        String?
+  createdAt       DateTime     @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+}

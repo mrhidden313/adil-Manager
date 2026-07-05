@@ -1,0 +1,335 @@
+<script lang="ts">
+  import { toast } from '$lib/stores/toast';
+  import { onMount, onDestroy } from 'svelte';
+  import ProfileModal from '$lib/components/ProfileModal.svelte';
+  import BottomNav from '$lib/components/BottomNav.svelte';
+  import Lightbox from '$lib/components/Lightbox.svelte';
+  import imageCompression from 'browser-image-compression';
+
+  let tickets: any[] = $state([]);
+  let selectedTicket: any = $state(null);
+  let showModal = $state(false);
+  let showProfile = $state(false);
+  
+  let proofFile: FileList | null = $state(null);
+  let isSubmitting = $state(false);
+
+  let lightboxSrc = $state('');
+  let showLightbox = $state(false);
+
+  function openLightbox(src: string) {
+    lightboxSrc = src;
+    showLightbox = true;
+  }
+
+  // Tabs for Local Agent
+  let activeTab = $state('APPROVED'); // APPROVED (To-Do), COMPLETED (Done)
+
+  let filteredTickets = $derived.by(() => {
+    return tickets.filter(t => t.status === activeTab);
+  });
+
+  async function fetchTickets() {
+    const token = sessionStorage.getItem('token');
+    const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.status === 401) { sessionStorage.clear(); window.location.href='/'; return; }
+    if (res.ok) {
+      const allTickets = await res.json();
+      tickets = allTickets;
+    }
+  }
+
+  let pollInterval: any;
+
+  onMount(() => {
+    const token = sessionStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.role !== 'FULFILLMENT') {
+          toast.add('You are logged in as a different role in another tab. Please log in again.', 'error');
+          sessionStorage.clear();
+          window.location.href = '/';
+          return;
+        }
+      } catch (e) {}
+    }
+    
+    fetchTickets();
+    
+    // Smart polling: only fetch when tab is visible to reduce server load
+    pollInterval = setInterval(() => {
+      if (document.visibilityState === 'visible' && !isSubmitting) {
+        fetchTickets();
+      }
+    }, 3000);
+  });
+
+  onDestroy(() => {
+    if (pollInterval) clearInterval(pollInterval);
+  });
+
+  function openTicket(ticket: any) {
+    selectedTicket = ticket;
+    proofFile = null;
+    showModal = true;
+  }
+
+  async function handleFinishOrder(e: Event) {
+    e.preventDefault();
+    if (!proofFile || proofFile.length === 0) return toast.add('Please attach confirmation image.', 'error');
+    
+    isSubmitting = true;
+    const token = sessionStorage.getItem('token');
+    
+    try {
+      const options = {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true
+      };
+      
+      const compressedFile = await imageCompression(proofFile[0], options);
+      
+      const formData = new FormData();
+      formData.append('status', 'COMPLETED');
+      formData.append('fulfillmentProof', compressedFile, proofFile[0].name);
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/tickets/${selectedTicket.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      
+      if (res.status === 401) { sessionStorage.clear(); window.location.href='/'; return; }
+    if (res.ok) {
+        showModal = false;
+        proofFile = null;
+        fetchTickets();
+        activeTab = 'COMPLETED'; // Switch to completed tab to show success
+      } else {
+        const errorData = await res.json();
+        toast.add(errorData.error || 'Failed to finish order', 'error');
+      }
+    } catch (err) {
+      toast.add('Error connecting to server', 'error');
+    } finally {
+      isSubmitting = false;
+    }
+  }
+</script>
+
+<div class="flex h-screen bg-slate-50 text-slate-900 font-sans">
+  
+  <!-- Sidebar -->
+  <aside class="w-64 bg-slate-900 text-slate-300 flex-col hidden md:flex shadow-2xl z-10">
+    <div class="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950">
+      <div class="w-8 h-8 rounded-full overflow-hidden mr-3 shadow-lg shadow-indigo-500/20 bg-indigo-50 flex items-center justify-center">
+        <img src="/logo.png" alt="Logo" class="w-full h-full object-cover scale-110" onerror={(e) => e.currentTarget.style.display='none'} />
+      </div>
+      <h1 class="text-xl font-bold text-white tracking-tight">AK Flow</h1>
+    </div>
+    <div class="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
+      <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">Local Operations</div>
+      <button class="w-full flex items-center space-x-3 bg-indigo-500/10 text-indigo-400 px-3 py-2.5 rounded-lg font-medium transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        <span>Assigned Tasks</span>
+      </button>
+      <button class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-300 px-3 py-2.5 rounded-lg font-medium transition-colors" onclick={() => window.location.href='/chat'}>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+        <span>Team Chat</span>
+      </button>
+      <button onclick={() => showProfile = true} class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-300 px-3 py-2.5 rounded-lg font-medium transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <span>Profile</span>
+      </button>
+    </div>
+    <div class="p-4 border-t border-slate-800">
+      <button onclick={() => { sessionStorage.clear(); window.location.href = '/'; }} class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-400 hover:text-white px-3 py-2.5 rounded-lg font-medium transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        <span>Sign Out</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    
+    <!-- Header -->
+    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8">
+      <div class="flex items-center md:hidden">
+        <div class="w-8 h-8 rounded-full overflow-hidden mr-2 bg-indigo-50 flex items-center justify-center">
+          <img src="/logo.png" alt="Logo" class="w-full h-full object-cover scale-110" onerror={(e) => e.currentTarget.style.display='none'} />
+        </div>
+        <span class="font-bold text-slate-900">AK Flow</span>
+      </div>
+      <h2 class="hidden md:block text-lg font-semibold text-slate-800">Local Agent Dashboard</h2>
+      <div class="flex items-center space-x-4">
+        <div class="hidden sm:block text-sm text-slate-500">Fulfillment Mode</div>
+        <button class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold border border-emerald-200 cursor-pointer" onclick={() => showProfile = true}>
+          L
+        </button>
+        <button aria-label="Close menu" onclick={() => { sessionStorage.clear(); window.location.href = '/'; }} class="md:hidden text-slate-500 hover:text-slate-900">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50">
+      <div class="max-w-5xl mx-auto">
+        <div class="mb-6">
+          <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Assigned Tasks</h1>
+          <p class="text-slate-500 mt-1 text-sm">Process and complete your fulfillment queue.</p>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="border-b border-slate-200 mb-6">
+          <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+            <button onclick={() => activeTab = 'APPROVED'} class={`whitespace-nowrap py-4 px-1 border-b-2 font-semibold text-sm ${activeTab === 'APPROVED' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'} transition-colors`}>
+              To-Do List
+            </button>
+            <button onclick={() => activeTab = 'COMPLETED'} class={`whitespace-nowrap py-4 px-1 border-b-2 font-semibold text-sm ${activeTab === 'COMPLETED' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'} transition-colors`}>
+              Finished Orders
+            </button>
+          </nav>
+        </div>
+
+        {#if filteredTickets.length === 0}
+          <div class="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm mt-8">
+            <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-2">Queue Empty!</h3>
+            <p class="text-slate-500 max-w-md mx-auto">You have no tasks in the "{activeTab === 'APPROVED' ? 'To-Do' : 'Finished'}" list right now. Relax!</p>
+          </div>
+        {:else}
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {#each filteredTickets as ticket}
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div 
+                class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-indigo-300 transition-all flex flex-col justify-between"
+                class:cursor-pointer={activeTab === 'APPROVED'}
+                class:active:scale-95={activeTab === 'APPROVED'}
+                onclick={() => { if(activeTab === 'APPROVED') openTicket(ticket) }}
+              >
+                <div>
+                  <div class="flex justify-between items-start mb-3">
+                    <span class={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${
+                      activeTab === 'APPROVED' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    }`}>
+                      {ticket.status}
+                    </span>
+                    <span class="text-xs font-bold text-slate-400">{new Date(ticket.updatedAt).toLocaleDateString()}</span>
+                  </div>
+                  
+                  <h3 class="font-bold text-slate-900 text-lg mb-1">{ticket.genericData?.name || ticket.transactionId}</h3>
+                  {#if ticket.createdBy}
+                    <p class="text-xs font-semibold text-slate-500 flex items-center">
+                      <svg class="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                      {ticket.createdBy.name}
+                    </p>
+                  {/if}
+                  
+                  {#if ticket.genericData?.notes}
+                    <div class="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-600 italic">
+                      "{ticket.genericData.notes}"
+                    </div>
+                  {/if}
+                </div>
+                
+                {#if activeTab === 'APPROVED'}
+                  <div class="mt-5 border-t border-slate-100 pt-4">
+                    <button class="w-full bg-indigo-50 text-indigo-700 font-bold py-2 px-4 rounded-xl shadow-sm hover:bg-indigo-100 transition-colors border border-indigo-100">
+                      Finish Order
+                    </button>
+                  </div>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    </div>
+  </main>
+</div>
+
+{#if showModal && selectedTicket}
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white relative">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-400"></div>
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Finish Order</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Upload proof of completion</p>
+        </div>
+        <button aria-label="Close modal" class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full hover:bg-slate-100 transition-colors" onclick={() => showModal = false}>
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      
+      <div class="p-6 overflow-y-auto bg-slate-50/50">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6">
+          <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Customer Name</span>
+          <span class="text-slate-900 font-bold text-lg">{selectedTicket.genericData?.name || selectedTicket.transactionId}</span>
+          {#if selectedTicket.genericData?.quantity}
+            <span class="ml-2 text-sm text-slate-500 font-medium">({selectedTicket.genericData.quantity} tickets)</span>
+          {/if}
+          
+          {#if selectedTicket.genericData?.whatsappNumber}
+            <div class="mt-2">
+              <span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">WhatsApp</span>
+              <a href="https://wa.me/{selectedTicket.genericData.whatsappNumber.replace(/[^0-9]/g, '')}" target="_blank" class="inline-flex items-center space-x-1 text-emerald-600 font-bold hover:text-emerald-700 transition bg-emerald-50 px-2 py-1 rounded">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                <span>{selectedTicket.genericData.whatsappNumber}</span>
+              </a>
+            </div>
+          {/if}
+        </div>
+
+        {#if selectedTicket.paymentProofUrl}
+          <div class="mb-5">
+            <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Payment Proof</span>
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="bg-white border border-slate-200 p-2 rounded-xl shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onclick={() => openLightbox(selectedTicket.paymentProofUrl)}>
+              <img src={selectedTicket.paymentProofUrl} alt="Proof" class="w-full h-48 object-cover rounded-lg">
+            </div>
+          </div>
+        {/if}
+
+        <form onsubmit={handleFinishOrder} class="space-y-4">
+          <div>
+            <label for="proofFile" class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Confirmation Image</label>
+            <p class="text-xs text-slate-500 mb-3">Upload a screenshot or photo proof to verify this order is complete.</p>
+            <input id="proofFile" type="file" accept="image/*" required bind:files={proofFile} class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-slate-200 rounded-xl bg-white p-1 transition-colors">
+          </div>
+          
+          <div class="pt-6 border-t border-slate-200">
+            <button type="submit" disabled={isSubmitting} class="w-full bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50 shadow-sm shadow-emerald-600/20 flex justify-center items-center">
+              {#if isSubmitting}
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Processing...
+              {:else}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                Mark as Completed
+              {/if}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if showLightbox}
+  <Lightbox src={lightboxSrc} onClose={() => showLightbox = false} />
+{/if}
+
+<BottomNav role="FULFILLMENT" bind:showProfile={showProfile} />
+
+<ProfileModal bind:showProfile />
+
