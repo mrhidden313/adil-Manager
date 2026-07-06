@@ -143,7 +143,7 @@ export const getCompanySettings = async (req: Request, res: Response): Promise<v
     }
 
     const company = await prisma.company.findUnique({
-      where: { id },
+      where: { id: id as string },
       select: {
         id: true, name: true, maxPadLimit: true, allowSalesChat: true, requireManagerApproval: true
       }
@@ -183,7 +183,7 @@ export const updateCompanySettings = async (req: Request, res: Response): Promis
     if (requireManagerApproval !== undefined) updateData.requireManagerApproval = Boolean(requireManagerApproval);
 
     const updated = await prisma.company.update({
-      where: { id },
+      where: { id: id as string },
       data: updateData,
       select: { id: true, name: true, maxPadLimit: true, allowSalesChat: true, requireManagerApproval: true }
     });
