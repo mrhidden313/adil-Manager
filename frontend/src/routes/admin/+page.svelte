@@ -2,6 +2,7 @@
   import { toast } from '$lib/stores/toast';
   import { onMount, onDestroy } from 'svelte';
   import ProfileModal from '$lib/components/ProfileModal.svelte';
+  import BottomNav from '$lib/components/BottomNav.svelte';
 
   let companies: any[] = $state([]);
   let showProfileModal = $state(false);
