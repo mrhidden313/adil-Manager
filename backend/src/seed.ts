@@ -4,14 +4,14 @@ import bcrypt from 'bcrypt';
 async function main() {
   console.log('Seeding SaaS database...');
   
-  const passwordHash = await bcrypt.hash('password123', 10);
+  const passwordHash = await bcrypt.hash('adill1122@@@', 10);
 
   // Super Admin
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@company.com' },
+    where: { email: 'adminadil@akflow.com' },
     update: {},
     create: {
-      email: 'admin@company.com',
+      email: 'adminadil@akflow.com',
       password: passwordHash,
       name: 'Super Admin',
       role: 'SUPER_ADMIN',
@@ -20,8 +20,8 @@ async function main() {
 
   console.log('Database seeded successfully!');
   console.log('---------------------------');
-  console.log('Test Accounts (Password: password123)');
-  console.log('1. admin@company.com (SUPER_ADMIN)');
+  console.log('Test Accounts (Password: adill1122@@@)');
+  console.log('1. adminadil@akflow.com (SUPER_ADMIN)');
   console.log('Login as Super Admin to create SaaS Companies and Managers.');
 }
 
