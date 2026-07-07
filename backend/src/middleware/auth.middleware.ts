@@ -12,7 +12,9 @@ export interface AuthRequest extends Request {
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_development';
 
-export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction): void => {
+import { prisma } from '../prisma';
+
+export const requireAuth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -22,6 +24,22 @@ export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction)
 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET) as { id: string; role: Role; companyId?: string };
+    
+    // Security Fix: Actually check if user still exists in database
+    const userExists = await prisma.user.findUnique({
+      where: { id: decoded.id }
+    });
+
+    if (!userExists) {
+      res.status(401).json({ error: 'Unauthorized: User no longer exists' });
+      return;
+    }
+
+    if (!userExists.isActive) {
+      res.status(401).json({ error: 'Unauthorized: Account disabled' });
+      return;
+    }
+
     req.user = decoded;
     next();
   } catch (error) {
