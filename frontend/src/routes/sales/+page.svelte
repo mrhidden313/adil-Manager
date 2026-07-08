@@ -6,10 +6,6 @@
   import Lightbox from '$lib/components/Lightbox.svelte';
   import imageCompression from 'browser-image-compression';
 
-  import { Line } from 'svelte-chartjs';
-  import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, Filler } from 'chart.js';
-  ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, Filler);
-
   let tickets: any[] = $state([]);
   let payouts: any[] = $state([]);
   let notifications: any[] = $state([]);
@@ -26,9 +22,10 @@
   // Create Order Modal State
   let showModal = $state(false);
   let customerName = $state('');
-  let whatsappNumber = $state('');
+  let phoneNumber = $state('');
   let amount = $state('');
-  let quantity = $state('1');
+  let paymentMethod = $state('EASYPAISA'); // EASYPAISA, JAZZCASH, BANK
+  let bankType = $state('');
   let notes = $state('');
   let proofFile: FileList | null = $state(null);
   let isSubmitting = $state(false);
@@ -68,43 +65,6 @@
     return () => clearInterval(pollInterval);
   });
 
-  // Chart Data
-  let chartData = $derived.by(() => {
-    const days = [...Array(7)].map((_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-    }).reverse();
-
-    const dataPoints = days.map(dayStr => {
-      return tickets.filter(t => new Date(t.createdAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) === dayStr)
-                    .reduce((acc, t) => acc + (t.price || 0), 0);
-    });
-
-    return {
-      labels: days,
-      datasets: [
-        {
-          label: 'Sales ($)',
-          data: dataPoints,
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          fill: true,
-          tension: 0.4
-        }
-      ]
-    };
-  });
-  
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: { 
-      y: { beginAtZero: true, grid: { display: false } },
-      x: { grid: { display: false } }
-    }
-  };
 
   async function handleCreateTicket(e: Event) {
     e.preventDefault();
@@ -124,9 +84,10 @@
       
       formData.append('genericData', JSON.stringify({
         name: customerName,
-        whatsappNumber: whatsappNumber,
-        quantity: quantity,
-        notes: notes
+        phone: phoneNumber,
+        paymentMethod,
+        bankType: paymentMethod === 'BANK' ? bankType : '',
+        notes
       }));
 
       formData.append('proof', compressedFile, proofFile[0].name);
@@ -139,7 +100,7 @@
       
       if (res.ok) {
         showModal = false;
-        customerName = ''; whatsappNumber = ''; amount = ''; quantity = '1'; notes = ''; proofFile = null;
+        customerName = ''; phoneNumber = ''; amount = ''; paymentMethod = 'EASYPAISA'; bankType = ''; notes = ''; proofFile = null;
         toast.add('Order submitted! You will earn a 10% bonus when completed.', 'success');
         fetchData();
       } else {
@@ -290,33 +251,26 @@
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
             <div class="absolute right-0 top-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Sales</p>
-            <p class="text-3xl font-black text-slate-900">${totalSales.toLocaleString()}</p>
+            <p class="text-3xl font-black text-slate-900">PKR {totalSales.toLocaleString()}</p>
             <p class="text-xs text-emerald-600 font-bold mt-2">{totalTickets} Orders</p>
           </div>
           
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
             <div class="absolute right-0 top-0 w-24 h-24 bg-amber-500/5 rounded-bl-full"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pending Bonus (10%)</p>
-            <p class="text-3xl font-black text-amber-600">${pendingBonus.toLocaleString()}</p>
+            <p class="text-3xl font-black text-amber-600">PKR {pendingBonus.toLocaleString()}</p>
             <p class="text-xs text-slate-500 font-medium mt-2">Waiting for Manager to pay</p>
           </div>
           
           <div class="bg-gradient-to-br from-indigo-600 to-purple-700 p-5 rounded-2xl shadow-md border border-indigo-500 text-white relative overflow-hidden flex flex-col justify-between">
             <div>
               <p class="text-xs font-bold text-indigo-200 uppercase tracking-wider mb-1">Total Paid Bonus</p>
-              <p class="text-3xl font-black">${paidBonus.toLocaleString()}</p>
+              <p class="text-3xl font-black">PKR {paidBonus.toLocaleString()}</p>
             </div>
             <p class="text-xs text-indigo-100 font-medium mt-2">Total cash received</p>
           </div>
         </div>
 
-        <!-- Sales Chart -->
-        <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
-          <h3 class="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wider">Your 7-Day Performance</h3>
-          <div class="h-64 w-full">
-            <Line data={chartData} options={chartOptions} />
-          </div>
-        </div>
 
         <!-- Main Tabs -->
         <div class="border-b border-slate-200 mt-8 mb-4">
@@ -344,9 +298,9 @@
                   <h3 class="font-bold text-slate-900 text-lg">{ticket.genericData?.name || ticket.transactionId}</h3>
                   <div class="flex items-center space-x-3 mt-1">
                     <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-xs font-bold border border-emerald-100">
-                      ${ticket.price}
+                      PKR {ticket.price}
                     </span>
-                    <span class="text-xs font-medium text-slate-500">Bonus: <span class="font-bold {ticket.bonusStatus === 'PAID' ? 'text-emerald-600' : 'text-amber-500'}">${ticket.bonusAmount} ({ticket.bonusStatus})</span></span>
+                    <span class="text-xs font-medium text-slate-500">Bonus: <span class="font-bold {ticket.bonusStatus === 'PAID' ? 'text-emerald-600' : 'text-amber-500'}">PKR {ticket.bonusAmount} ({ticket.bonusStatus})</span></span>
                   </div>
                   <p class="text-xs text-slate-400 mt-2">{new Date(ticket.createdAt).toLocaleDateString()}</p>
                 </div>
@@ -372,7 +326,7 @@
             {#each payouts as payout}
               <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <p class="font-black text-slate-900 text-2xl">${payout.amount.toFixed(2)}</p>
+                  <p class="font-black text-slate-900 text-2xl">PKR {payout.amount.toFixed(2)}</p>
                   <p class="text-xs text-slate-500 mt-1">{new Date(payout.createdAt).toLocaleString()}</p>
                   <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border {payout.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">
                     {payout.status === 'APPROVED' ? 'Received & Approved' : 'Waiting for Your Approval'}
@@ -414,23 +368,59 @@
       
       <div class="p-6 overflow-y-auto bg-slate-50/50">
         <form onsubmit={handleCreateTicket} class="space-y-4">
+
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Customer Name</label>
-            <input type="text" required bind:value={customerName} placeholder="e.g., John Doe" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+            <input type="text" required bind:value={customerName} placeholder="e.g., Ali Khan" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Total Sales Amount ($)</label>
-            <input type="number" step="0.01" required bind:value={amount} placeholder="0.00" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
-            <p class="text-[10px] text-emerald-600 mt-1 font-bold">You will earn ${amount ? (parseFloat(amount) * 0.1).toFixed(2) : '0.00'} (10% bonus)</p>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Phone Number</label>
+            <input type="tel" bind:value={phoneNumber} placeholder="e.g., 03001234567" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
           </div>
-          
+
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Payment Proof Screenshot</label>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Amount in PKR</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">PKR</span>
+              <input type="number" step="1" required bind:value={amount} placeholder="0" class="w-full pl-14 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+            </div>
+            <p class="text-[10px] text-emerald-600 mt-1 font-bold">You will earn PKR {amount ? Math.floor(parseFloat(amount) * 0.1).toLocaleString() : '0'} (10% bonus)</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Payment Method</label>
+            <div class="flex gap-2">
+              <button type="button" onclick={() => paymentMethod = 'EASYPAISA'} class="flex-1 py-2.5 rounded-xl text-xs font-bold border transition-all {paymentMethod === 'EASYPAISA' ? 'bg-green-600 text-white border-green-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-green-300'}">
+                EasyPaisa
+              </button>
+              <button type="button" onclick={() => paymentMethod = 'JAZZCASH'} class="flex-1 py-2.5 rounded-xl text-xs font-bold border transition-all {paymentMethod === 'JAZZCASH' ? 'bg-red-600 text-white border-red-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-red-300'}">
+                JazzCash
+              </button>
+              <button type="button" onclick={() => paymentMethod = 'BANK'} class="flex-1 py-2.5 rounded-xl text-xs font-bold border transition-all {paymentMethod === 'BANK' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}">
+                Bank
+              </button>
+            </div>
+          </div>
+
+          {#if paymentMethod === 'BANK'}
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Bank Name</label>
+              <input type="text" bind:value={bankType} placeholder="e.g., HBL, Meezan, UBL" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+            </div>
+          {/if}
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Upload Payment Screenshot</label>
             <input type="file" accept="image/*" required bind:files={proofFile} class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-slate-200 rounded-xl bg-white p-1">
           </div>
-          
-          <div class="pt-4 flex space-x-3">
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Notes (Optional)</label>
+            <textarea bind:value={notes} placeholder="Any additional notes..." rows="2" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm resize-none"></textarea>
+          </div>
+
+          <div class="pt-2">
             <button type="submit" disabled={isSubmitting} class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-sm shadow-indigo-600/20 text-sm">
               {isSubmitting ? 'Uploading...' : 'Submit Order'}
             </button>
