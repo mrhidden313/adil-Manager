@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const createTicket = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { transactionId, genericData, padId } = req.body;
+    const { transactionId, genericData, price } = req.body;
     const userId = req.user?.id;
     const companyId = req.user?.companyId;
     const file = req.file;
@@ -21,17 +21,15 @@ export const createTicket = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
     
-    if (!padId) {
-      res.status(400).json({ error: 'Order must be assigned to a Pad' });
-      return;
-    }
-
     // Check for duplicate transactionId
     const existingTicket = await prisma.ticket.findUnique({ where: { transactionId } });
     if (existingTicket) {
       res.status(400).json({ error: 'Duplicate Transaction ID' });
       return;
     }
+
+    const ticketPrice = parseFloat(price) || 0;
+    const bonusAmount = ticketPrice * 0.10; // 10% commission
 
     // Upload to Supabase
     const fileExt = file.originalname.split('.').pop();
@@ -66,46 +64,19 @@ export const createTicket = async (req: AuthRequest, res: Response): Promise<voi
       }
     }
 
-    const requestedQuantity = parseInt(parsedGenericData.quantity || '1', 10);
-
-    // Verify Pad
-    const pad = await prisma.ticketPad.findUnique({ where: { id: padId } });
-    if (!pad) {
-      res.status(404).json({ error: 'Pad not found' });
-      return;
-    }
-
-    if (pad.status !== 'ACTIVE' && pad.status !== 'PENDING') {
-      res.status(400).json({ error: 'This Pad is not active' });
-      return;
-    }
-
-    if (pad.ticketsUsed + requestedQuantity > pad.totalTickets) {
-      res.status(400).json({ error: `Not enough tickets left in this Pad. Requested: ${requestedQuantity}, Remaining: ${pad.totalTickets - pad.ticketsUsed}` });
-      return;
-    }
-
-    // Use a transaction to ensure atomic update of pad and ticket creation
-    const [ticket, updatedPad] = await prisma.$transaction([
-      prisma.ticket.create({
-        data: {
-          createdById: userId,
-          companyId,
-          transactionId,
-          paymentProofUrl,
-          genericData: parsedGenericData,
-          status: 'PENDING',
-          padId
-        }
-      }),
-      prisma.ticketPad.update({
-        where: { id: padId },
-        data: {
-          ticketsUsed: pad.ticketsUsed + requestedQuantity,
-          status: (pad.ticketsUsed + requestedQuantity >= pad.totalTickets) ? 'COMPLETED' : pad.status
-        }
-      })
-    ]);
+    const ticket = await prisma.ticket.create({
+      data: {
+        createdById: userId,
+        companyId,
+        transactionId,
+        paymentProofUrl,
+        genericData: parsedGenericData,
+        status: 'PENDING',
+        price: ticketPrice,
+        bonusAmount: bonusAmount,
+        bonusStatus: 'PENDING'
+      }
+    });
 
     // Create Audit Log
     await prisma.auditLog.create({
@@ -133,8 +104,7 @@ export const listTickets = async (req: AuthRequest, res: Response): Promise<void
     const companyIdStr = companyId as string;
 
     const includeData = { 
-      createdBy: { select: { name: true, role: true, email: true } },
-      pad: { select: { name: true, color: true } }
+      createdBy: { select: { name: true, role: true, email: true } }
     };
 
     if (role === 'SUPER_ADMIN') {

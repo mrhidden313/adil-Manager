@@ -1,18 +1,29 @@
 <script lang="ts">
   import { toast } from '$lib/stores/toast';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/stores';
   import ProfileModal from '$lib/components/ProfileModal.svelte';
   import BottomNav from '$lib/components/BottomNav.svelte';
   import Lightbox from '$lib/components/Lightbox.svelte';
+  
+  import { Line } from 'svelte-chartjs';
+  import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, Filler } from 'chart.js';
+  ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, Filler);
 
   let tickets: any[] = $state([]);
+  let payouts: any[] = $state([]);
   let fulfillmentAgents: any[] = $state([]);
-  let selectedTicket: any = $state(null);
+  let salesAgents: any[] = $state([]);
   
+  let selectedTicket: any = $state(null);
   let showTicketModal = $state(false);
-  let showProfile = $state(false);
+  
+  let selectedAgentForPayout: any = $state(null);
+  let showPayoutModal = $state(false);
+  let payoutProofFile: File | null = $state(null);
+  let payoutProofPreview: string = $state('');
 
+  let showProfile = $state(false);
   let lightboxSrc = $state('');
   let showLightbox = $state(false);
 
@@ -20,74 +31,103 @@
     lightboxSrc = src;
     showLightbox = true;
   }
+
   let assignToId = $state('');
   let isSubmitting = $state(false);
   let notifications: any[] = $state([]);
   let showNotifications = $state(false);
 
-  let activeTab = $state('PENDING'); // PENDING, APPROVED, COMPLETED
-  let agentIdFilter = $state<string | null>(null);
+  let activeTab = $state('ORDERS'); // ORDERS, PAYOUTS
+  let ordersTab = $state('PENDING'); // PENDING, APPROVED, COMPLETED
 
-  // Filter tickets by the active tab, and optionally by the agentId from URL
-  let filteredTickets = $derived.by(() => {
-    return tickets.filter(t => {
-      // Basic tab matching
-      if (t.status !== activeTab) return false;
-      
-      // If an agent filter is active, only show their tickets
-      if (agentIdFilter && t.createdById !== agentIdFilter) return false;
+  // Computed Stats
+  let totalAmount = $derived(tickets.reduce((acc, t) => acc + (t.price || 0), 0));
+  let totalBonusPending = $derived(tickets.filter(t => t.bonusStatus === 'PENDING' && t.status === 'COMPLETED').reduce((acc, t) => acc + (t.bonusAmount || 0), 0));
+  let totalBonusPaid = $derived(tickets.filter(t => t.bonusStatus === 'PAID').reduce((acc, t) => acc + (t.bonusAmount || 0), 0));
 
-      return true;
+  // Group pending bonus by agent
+  let agentPendingBonuses = $derived.by(() => {
+    const map = new Map<string, number>();
+    tickets.filter(t => t.bonusStatus === 'PENDING' && t.status === 'COMPLETED').forEach(t => {
+      map.set(t.createdById, (map.get(t.createdById) || 0) + (t.bonusAmount || 0));
     });
+    return map;
+  });
+
+  let filteredTickets = $derived.by(() => {
+    return tickets.filter(t => t.status === ordersTab);
   });
 
   async function fetchData() {
     const token = sessionStorage.getItem('token');
     
-    // Fetch tickets
-    const resTickets = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (resTickets.status === 401) { sessionStorage.clear(); window.location.href='/'; return; }
-    if (resTickets.ok) {
-      tickets = await resTickets.json();
-    }
+    const [resTickets, resTeam, resPayouts, resNotif] = await Promise.all([
+      fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', { headers: { 'Authorization': `Bearer ${token}` } }),
+      fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/users/team', { headers: { 'Authorization': `Bearer ${token}` } }),
+      fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/payouts', { headers: { 'Authorization': `Bearer ${token}` } }),
+      fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/notifications', { headers: { 'Authorization': `Bearer ${token}` } })
+    ]);
 
-    // Fetch team members for the assignment dropdown
-    const resTeam = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/users/team', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (resTeam.status === 401) { sessionStorage.clear(); window.location.href='/'; return; }
+    if (resTickets.status === 401) { sessionStorage.clear(); window.location.href='/'; return; }
+    
+    if (resTickets.ok) tickets = await resTickets.json();
+    if (resPayouts.ok) payouts = await resPayouts.json();
+    if (resNotif.ok) notifications = await resNotif.json();
+    
     if (resTeam.ok) {
       const team = await resTeam.json();
       fulfillmentAgents = team.filter((u: any) => u.role === 'FULFILLMENT' && u.isActive);
-    }
-    
-    // Fetch notifications
-    const resNotif = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/notifications', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (resNotif.ok) {
-      notifications = await resNotif.json();
+      salesAgents = team.filter((u: any) => u.role === 'SALES' && u.isActive);
     }
   }
 
   let pollInterval: any;
-
   onMount(() => {
-    // Read the query parameter
-    agentIdFilter = $page.url.searchParams.get('agentId');
     fetchData();
-    
-    // Smart polling: only fetch when tab is visible to reduce server load
     pollInterval = setInterval(() => {
-      if (document.visibilityState === 'visible' && !isSubmitting) {
-        fetchData();
-      }
-    }, 3000);
-    
+      if (document.visibilityState === 'visible' && !isSubmitting) fetchData();
+    }, 5000);
     return () => clearInterval(pollInterval);
   });
+
+  // Chart Data
+  let chartData = $derived.by(() => {
+    // Group tickets by last 7 days
+    const days = [...Array(7)].map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }).reverse();
+
+    const dataPoints = days.map(dayStr => {
+      return tickets.filter(t => new Date(t.createdAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) === dayStr)
+                    .reduce((acc, t) => acc + (t.price || 0), 0);
+    });
+
+    return {
+      labels: days,
+      datasets: [
+        {
+          label: 'Sales Amount ($)',
+          data: dataPoints,
+          borderColor: '#6366f1',
+          backgroundColor: 'rgba(99, 102, 241, 0.1)',
+          fill: true,
+          tension: 0.4
+        }
+      ]
+    };
+  });
+  
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { 
+      y: { beginAtZero: true, grid: { display: false } },
+      x: { grid: { display: false } }
+    }
+  };
 
   function openTicket(ticket: any) {
     selectedTicket = ticket;
@@ -99,40 +139,62 @@
     if (status === 'APPROVED' && !assignToId) {
       return toast.add('Please select a local agent to assign this ticket to.', 'error');
     }
-
     isSubmitting = true;
     const token = sessionStorage.getItem('token');
-
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/tickets/${selectedTicket.id}/status`, {
         method: 'PATCH',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          status,
-          assignedToId: status === 'APPROVED' ? assignToId : undefined
-        })
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, assignedToId: status === 'APPROVED' ? assignToId : undefined })
       });
-
-      if (res.status === 401) { sessionStorage.clear(); window.location.href='/'; return; }
-    if (res.ok) {
+      if (res.ok) {
         showTicketModal = false;
         fetchData();
+        toast.add('Status updated', 'success');
       } else {
-        const err = await res.json();
-        toast.add(err.error || 'Failed to update ticket', 'error');
+        toast.add('Failed to update', 'error');
       }
-    } catch (e) {
-      toast.add('Network error', 'error');
     } finally {
       isSubmitting = false;
     }
   }
 
-  function clearAgentFilter() {
-    window.location.href = '/manager';
+  function handleProofSelect(e: any) {
+    const file = e.target.files[0];
+    if (file) {
+      payoutProofFile = file;
+      payoutProofPreview = URL.createObjectURL(file);
+    }
+  }
+
+  async function payBonus() {
+    if (!payoutProofFile) return toast.add('Please upload a screenshot of the payment.', 'error');
+    
+    isSubmitting = true;
+    const token = sessionStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('agentId', selectedAgentForPayout.id);
+    formData.append('proof', payoutProofFile);
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/payouts/pay`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      if (res.ok) {
+        showPayoutModal = false;
+        payoutProofFile = null;
+        payoutProofPreview = '';
+        fetchData();
+        toast.add('Payout sent successfully', 'success');
+      } else {
+        const err = await res.json();
+        toast.add(err.error || 'Failed to send payout', 'error');
+      }
+    } finally {
+      isSubmitting = false;
+    }
   }
 
   async function markNotificationAsRead(id: string) {
@@ -145,25 +207,21 @@
   }
 </script>
 
-<div class="flex h-screen bg-slate-50 text-slate-900 font-sans">
+<div class="flex h-screen bg-slate-50 text-slate-900 font-sans pb-16 md:pb-0">
   
   <!-- Sidebar -->
   <aside class="w-64 bg-slate-900 text-slate-300 flex-col hidden md:flex shadow-2xl z-10">
     <div class="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950">
-      <div class="w-8 h-8 rounded-full overflow-hidden mr-3 shadow-lg shadow-indigo-500/20 bg-indigo-50 flex items-center justify-center">
+      <div class="w-8 h-8 rounded-full overflow-hidden mr-3 shadow-lg bg-indigo-50 flex items-center justify-center">
         <img src="/logo.png" alt="Logo" class="w-full h-full object-cover scale-110" onerror={(e) => e.currentTarget.style.display='none'} />
       </div>
       <h1 class="text-xl font-bold text-white tracking-tight">AK Flow</h1>
     </div>
     <div class="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
-      <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">Agency Operations</div>
+      <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">Dashboard</div>
       <button class="w-full flex items-center space-x-3 bg-indigo-500/10 text-indigo-400 px-3 py-2.5 rounded-lg font-medium transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-        <span>Orders (Tasks)</span>
-      </button>
-      <button class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-300 px-3 py-2.5 rounded-lg font-medium transition-colors" onclick={() => window.location.href='/manager/pads'}>
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-        <span>Pads (Copies)</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        <span>Overview</span>
       </button>
       <button class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-300 px-3 py-2.5 rounded-lg font-medium transition-colors" onclick={() => window.location.href='/manager/team'}>
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
@@ -175,17 +233,10 @@
       </button>
 
       <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mt-6 mb-2 px-2">Settings</div>
-      <button onclick={() => window.location.href = '/manager/settings'} class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-300 px-3 py-2.5 rounded-lg font-medium transition-colors">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-        <span>Global Settings</span>
-      </button>
-
       <button onclick={() => showProfile = true} class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-300 px-3 py-2.5 rounded-lg font-medium transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
         <span>Profile</span>
       </button>
-    </div>
-    <div class="p-4 border-t border-slate-800">
       <button onclick={() => { sessionStorage.clear(); window.location.href = '/'; }} class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-400 hover:text-white px-3 py-2.5 rounded-lg font-medium transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         <span>Sign Out</span>
@@ -204,10 +255,9 @@
         </div>
         <span class="font-bold text-slate-900">AK Flow</span>
       </div>
-      <h2 class="hidden md:block text-lg font-semibold text-slate-800">Review Orders</h2>
+      <h2 class="hidden md:block text-lg font-semibold text-slate-800">Manager Dashboard</h2>
+      
       <div class="flex items-center space-x-4">
-        <div class="hidden sm:block text-sm text-slate-500">Manager Mode</div>
-        
         <!-- Notifications Bell -->
         <div class="relative">
           <button onclick={() => showNotifications = !showNotifications} class="p-2 text-slate-500 hover:text-indigo-600 transition-colors relative">
@@ -235,8 +285,7 @@
                       onclick={() => markNotificationAsRead(notif.id)}
                     >
                       <div class="flex justify-between items-start mb-1">
-                        <span class="text-xs font-bold text-slate-900" class:text-indigo-700={!notif.isRead}>{notif.title}</span>
-                        <span class="text-[10px] text-slate-400 font-medium">{new Date(notif.createdAt).toLocaleDateString()}</span>
+                         <span class="text-xs font-bold text-slate-900" class:text-indigo-700={!notif.isRead}>{notif.title}</span>
                       </div>
                       <p class="text-sm text-slate-600 leading-snug">{notif.message}</p>
                     </div>
@@ -246,107 +295,146 @@
             </div>
           {/if}
         </div>
-
-        <button class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200 cursor-pointer" onclick={() => showProfile = true}>
-          M
-        </button>
-        <!-- Mobile Dropdown -->
-        <button onclick={() => window.location.href='/manager/team'} class="md:hidden text-indigo-600 font-bold text-sm">
-          Staff
-        </button>
       </div>
     </header>
 
     <!-- Page Content -->
     <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50">
-      <div class="max-w-5xl mx-auto">
-        <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Review Orders</h1>
-            <p class="text-slate-500 mt-1 text-sm">Approve tasks and track pipeline progression.</p>
+      <div class="max-w-6xl mx-auto space-y-6">
+        
+        <!-- Top Cinematic Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
+            <div class="absolute right-0 top-0 w-24 h-24 bg-indigo-500/5 rounded-bl-full"></div>
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Generated</p>
+            <p class="text-3xl font-black text-slate-900">${totalAmount.toLocaleString()}</p>
+            <p class="text-xs text-indigo-600 font-bold mt-2">{tickets.length} Tickets</p>
           </div>
           
-          <div class="flex flex-col sm:flex-row gap-3">
-            {#if agentIdFilter}
-              <div class="bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-xl flex items-center space-x-3 text-sm font-bold shadow-sm h-full">
-                <span>Filtering by specific agent</span>
-                <button onclick={clearAgentFilter} class="p-1 hover:bg-indigo-100 rounded-full transition" title="Clear Filter">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                </button>
-              </div>
-            {/if}
-            <button onclick={() => window.location.href='/manager/pads'} class="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-lg shadow-sm shadow-indigo-600/20 transition-all focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
-              <span>Create New Pad</span>
-            </button>
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
+            <div class="absolute right-0 top-0 w-24 h-24 bg-rose-500/5 rounded-bl-full"></div>
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pending Bonus</p>
+            <p class="text-3xl font-black text-rose-600">${totalBonusPending.toLocaleString()}</p>
+            <p class="text-xs text-slate-500 font-medium mt-2">To be paid to agents</p>
+          </div>
+          
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
+            <div class="absolute right-0 top-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full"></div>
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Paid Bonus</p>
+            <p class="text-3xl font-black text-emerald-600">${totalBonusPaid.toLocaleString()}</p>
+            <p class="text-xs text-slate-500 font-medium mt-2">Total payouts processed</p>
+          </div>
+
+          <div class="bg-gradient-to-br from-indigo-900 to-slate-900 p-5 rounded-2xl shadow-md border border-indigo-800 text-white flex flex-col justify-between">
+            <div>
+              <p class="text-xs font-bold text-indigo-300 uppercase tracking-wider mb-1">Staff Size</p>
+              <p class="text-3xl font-black">{salesAgents.length + fulfillmentAgents.length}</p>
+            </div>
+            <p class="text-xs text-indigo-200 font-medium">{salesAgents.length} Sales · {fulfillmentAgents.length} Local</p>
           </div>
         </div>
 
-        <!-- Filter Tabs -->
-        <div class="border-b border-slate-200 mb-6">
+        <!-- Sales Chart -->
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
+          <h3 class="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wider">7-Day Sales Volume</h3>
+          <div class="h-64 w-full">
+            <Line data={chartData} options={chartOptions} />
+          </div>
+        </div>
+
+        <!-- Main Tabs: Orders vs Payouts -->
+        <div class="border-b border-slate-200 mt-8 mb-4">
           <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-            <button onclick={() => activeTab = 'PENDING'} class={`whitespace-nowrap py-4 px-1 border-b-2 font-semibold text-sm ${activeTab === 'PENDING' ? 'border-amber-500 text-amber-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'} transition-colors`}>
-              Pending Approval
+            <button onclick={() => activeTab = 'ORDERS'} class={`whitespace-nowrap py-4 px-1 border-b-2 font-semibold text-sm ${activeTab === 'ORDERS' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'} transition-colors`}>
+              Review Orders
             </button>
-            <button onclick={() => activeTab = 'APPROVED'} class={`whitespace-nowrap py-4 px-1 border-b-2 font-semibold text-sm ${activeTab === 'APPROVED' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'} transition-colors`}>
-              Approved
-            </button>
-            <button onclick={() => activeTab = 'COMPLETED'} class={`whitespace-nowrap py-4 px-1 border-b-2 font-semibold text-sm ${activeTab === 'COMPLETED' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'} transition-colors`}>
-              Confirmed
+            <button onclick={() => activeTab = 'PAYOUTS'} class={`whitespace-nowrap py-4 px-1 border-b-2 font-semibold text-sm flex items-center gap-2 ${activeTab === 'PAYOUTS' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'} transition-colors`}>
+              Agent Payouts
+              {#if totalBonusPending > 0}
+                <span class="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm animate-pulse">Action Required</span>
+              {/if}
             </button>
           </nav>
         </div>
 
-        {#if filteredTickets.length === 0}
-          <div class="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm mt-8">
-            <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-            </div>
-            <h3 class="text-lg font-bold text-slate-900 mb-2">No Orders Found</h3>
-            <p class="text-slate-500 max-w-md mx-auto">There are no orders in the "{activeTab}" status for this view.</p>
+        {#if activeTab === 'ORDERS'}
+          <div class="flex space-x-4 mb-4">
+            <button onclick={() => ordersTab = 'PENDING'} class={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${ordersTab === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>Pending Approval</button>
+            <button onclick={() => ordersTab = 'APPROVED'} class={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${ordersTab === 'APPROVED' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>Approved</button>
+            <button onclick={() => ordersTab = 'COMPLETED'} class={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${ordersTab === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>Completed</button>
           </div>
-        {:else}
+
           <div class="space-y-4">
+            {#if filteredTickets.length === 0}
+              <div class="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-100 shadow-sm">No orders found in this status.</div>
+            {/if}
             {#each filteredTickets as ticket}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div 
-                class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center cursor-pointer hover:shadow-md hover:border-slate-300 transition-all active:scale-95"
-                class:border-l-4={true}
-                class:border-l-amber-400={activeTab === 'PENDING'}
-                class:border-l-indigo-400={activeTab === 'APPROVED'}
-                class:border-l-emerald-400={activeTab === 'COMPLETED'}
-                onclick={() => openTicket(ticket)}
-              >
+              <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center cursor-pointer hover:shadow-md hover:border-slate-300 transition-all" onclick={() => openTicket(ticket)}>
                 <div>
                   <div class="flex items-center space-x-3 mb-2 flex-wrap gap-y-2">
-                    <span class={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${
-                      activeTab === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                      activeTab === 'APPROVED' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
-                      'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    }`}>
-                      {ticket.status}
-                    </span>
-                    {#if ticket.createdBy}
-                      <span class="flex items-center space-x-1.5 px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold border border-slate-200">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
-                        <span>Agent: {ticket.createdBy.name}</span>
-                      </span>
-                    {/if}
-                    {#if ticket.pad}
-                      <span class="flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-200 shadow-sm" style="background-color: {ticket.pad.color}15; color: {ticket.pad.color}">
-                        <div class="w-1.5 h-1.5 rounded-full" style="background-color: {ticket.pad.color}"></div>
-                        <span>{ticket.pad.name}</span>
-                      </span>
-                    {/if}
+                    <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-slate-50 text-slate-700 border-slate-200">{ticket.status}</span>
+                    <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-emerald-50 text-emerald-700 border-emerald-200">${ticket.price}</span>
                   </div>
-                  <p class="font-bold text-slate-900 text-lg truncate w-[200px] sm:w-[300px] md:w-auto">
-                    {ticket.genericData?.name || ticket.transactionId}
-                  </p>
-                  <p class="text-xs font-medium text-slate-500 mt-1">Submitted: {new Date(ticket.createdAt).toLocaleString()}</p>
+                  <p class="font-bold text-slate-900 text-lg truncate w-[200px] sm:w-[300px] md:w-auto">{ticket.genericData?.name || ticket.transactionId}</p>
+                  <p class="text-xs font-medium text-slate-500 mt-1">By: {ticket.createdBy?.name}</p>
                 </div>
-                <div class="text-slate-400 flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+              </div>
+            {/each}
+          </div>
+        {/if}
+
+        {#if activeTab === 'PAYOUTS'}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {#each salesAgents as agent}
+              {@const pending = agentPendingBonuses.get(agent.id) || 0}
+              <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center sm:justify-between gap-4">
+                <div class="flex items-center gap-4 text-center sm:text-left">
+                  <div class="w-12 h-12 bg-indigo-100 text-indigo-700 font-bold rounded-full flex items-center justify-center text-xl">{agent.name.charAt(0)}</div>
+                  <div>
+                    <h4 class="font-bold text-slate-900">{agent.name}</h4>
+                    <p class="text-xs text-slate-500">{agent.email}</p>
+                  </div>
+                </div>
+                
+                <div class="flex items-center gap-4 flex-col sm:flex-row w-full sm:w-auto">
+                  <div class="text-center sm:text-right">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pending Bonus</p>
+                    <p class="text-xl font-black text-slate-900">${pending.toFixed(2)}</p>
+                  </div>
+                  <button 
+                    onclick={() => { selectedAgentForPayout = agent; showPayoutModal = true; }} 
+                    disabled={pending <= 0}
+                    class="w-full sm:w-auto bg-indigo-600 text-white font-bold px-4 py-2 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition"
+                  >
+                    Pay Bonus
+                  </button>
+                </div>
+              </div>
+            {/each}
+          </div>
+
+          <!-- Payout History -->
+          <h3 class="text-sm font-bold text-slate-900 mt-8 mb-4 uppercase tracking-wider">Payout History</h3>
+          <div class="space-y-4">
+            {#if payouts.length === 0}
+              <div class="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-100 shadow-sm">No payout history.</div>
+            {/if}
+            {#each payouts as payout}
+              <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+                <div>
+                  <p class="font-bold text-slate-900">Paid to {payout.agent?.name}</p>
+                  <p class="text-xs text-slate-500">{new Date(payout.createdAt).toLocaleString()}</p>
+                  <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border {payout.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">
+                    {payout.status === 'APPROVED' ? 'Agent Approved' : 'Waiting for Agent'}
+                  </span>
+                </div>
+                <div class="flex items-center gap-4">
+                  <span class="text-xl font-black text-slate-900">${payout.amount.toFixed(2)}</span>
+                  <button onclick={() => openLightbox(payout.proofUrl)} class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="View Proof">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                  </button>
                 </div>
               </div>
             {/each}
@@ -357,76 +445,30 @@
   </main>
 </div>
 
+<!-- Modals for Ticket Review and Payout -->
 {#if showTicketModal && selectedTicket}
   <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
         <h2 class="text-xl font-black text-slate-900">Review Order</h2>
-        <button aria-label="Close modal" class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full hover:bg-slate-100 transition-colors" onclick={() => showTicketModal = false}>
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
+        <button class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full hover:bg-slate-100 transition-colors" onclick={() => showTicketModal = false}><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
       
       <div class="p-6 overflow-y-auto flex-1 bg-slate-50/50">
-        <!-- Hidden Transaction ID from general view unless needed for debugging -->
-        
-        {#if selectedTicket.pad}
-          <div class="mb-5 flex items-center justify-between bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-            <div>
-              <span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Pad Collection</span>
-              <span class="text-slate-800 font-semibold">{selectedTicket.pad.name}</span>
-            </div>
-            <div class="w-8 h-8 rounded-full shadow-inner border border-white/20" style="background-color: {selectedTicket.pad.color}"></div>
-          </div>
-        {/if}
-
         {#if selectedTicket.genericData}
           <div class="mb-5 bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
             <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Order Details</span>
             <div class="grid grid-cols-2 gap-4">
-              <div>
-                <span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Customer Name</span>
-                <span class="text-slate-800 font-semibold">{selectedTicket.genericData.name || 'N/A'}</span>
-              </div>
-              
-              {#if selectedTicket.genericData.whatsappNumber}
-                <div>
-                  <span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">WhatsApp</span>
-                  <a href="https://wa.me/{selectedTicket.genericData.whatsappNumber.replace(/[^0-9]/g, '')}" target="_blank" class="inline-flex items-center space-x-1 text-emerald-600 font-bold hover:text-emerald-700 transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                    <span>{selectedTicket.genericData.whatsappNumber}</span>
-                  </a>
-                </div>
-              {/if}
-              <div>
-                <span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Amount</span>
-                <span class="text-emerald-600 font-bold">Rs {selectedTicket.genericData.amount || '0'}</span>
-              </div>
-              <div>
-                <span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Quantity</span>
-                <span class="text-slate-800 font-semibold">{selectedTicket.genericData.quantity || '1'} tickets</span>
-              </div>
+              <div><span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Customer Name</span><span class="text-slate-800 font-semibold">{selectedTicket.genericData.name || 'N/A'}</span></div>
+              <div><span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Total Amount</span><span class="text-emerald-600 font-bold">${selectedTicket.price}</span></div>
+              <div><span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Agent Bonus (10%)</span><span class="text-rose-600 font-bold">${selectedTicket.bonusAmount}</span></div>
             </div>
-            {#if selectedTicket.genericData.notes}
-              <div class="mt-4 pt-3 border-t border-slate-100">
-                <span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Notes</span>
-                <p class="text-slate-600 text-sm italic">"{selectedTicket.genericData.notes}"</p>
-              </div>
-            {/if}
-          </div>
-        {/if}
-
-        {#if selectedTicket.createdBy}
-          <div class="mb-5 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
-            <span class="block text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">Submitted By</span>
-            <span class="text-indigo-900 font-bold">{selectedTicket.createdBy.name}</span>
-            <span class="text-indigo-600 text-sm block mt-0.5">{selectedTicket.createdBy.email}</span>
           </div>
         {/if}
 
         {#if selectedTicket.paymentProofUrl}
           <div class="mb-5">
-            <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Payment Proof</span>
+            <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Customer Payment Proof</span>
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="bg-white border border-slate-200 p-2 rounded-xl shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onclick={() => openLightbox(selectedTicket.paymentProofUrl)}>
@@ -438,38 +480,54 @@
         {#if selectedTicket.status === 'PENDING'}
           <div class="mb-2">
             <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Assign Local Agent</span>
-            {#if fulfillmentAgents.length === 0}
-              <div class="text-sm text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-100">
-                You have no active local agents! Go to Staff Management to hire someone first.
-              </div>
-            {:else}
-              <select bind:value={assignToId} class="block w-full rounded-xl border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-medium p-3 outline-none">
-                <option value="">-- Select Agent --</option>
-                {#each fulfillmentAgents as agent}
-                  <option value={agent.id}>{agent.name}</option>
-                {/each}
-              </select>
-            {/if}
+            <select bind:value={assignToId} class="block w-full rounded-xl border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-medium p-3 outline-none">
+              <option value="">-- Select Agent --</option>
+              {#each fulfillmentAgents as agent}
+                <option value={agent.id}>{agent.name}</option>
+              {/each}
+            </select>
           </div>
         {/if}
       </div>
       
       {#if selectedTicket.status === 'PENDING'}
         <div class="p-6 border-t border-slate-100 bg-white flex space-x-3">
-          <button onclick={() => updateStatus('REJECTED')} disabled={isSubmitting} class="flex-1 bg-rose-50 border border-rose-200 text-rose-700 font-bold py-3 px-4 rounded-xl hover:bg-rose-100 disabled:opacity-50 transition-colors">
-            Reject
-          </button>
-          <button onclick={() => updateStatus('APPROVED')} disabled={isSubmitting || (fulfillmentAgents.length === 0)} class="flex-1 bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors">
-            {isSubmitting ? 'Approving...' : 'Approve'}
-          </button>
-        </div>
-      {:else}
-        <div class="p-6 border-t border-slate-100 bg-white text-center">
-          <button onclick={() => showTicketModal = false} class="w-full bg-slate-100 text-slate-700 font-bold py-3 px-4 rounded-xl hover:bg-slate-200 transition-colors">
-            Close
-          </button>
+          <button onclick={() => updateStatus('REJECTED')} disabled={isSubmitting} class="flex-1 bg-rose-50 border border-rose-200 text-rose-700 font-bold py-3 px-4 rounded-xl hover:bg-rose-100 disabled:opacity-50 transition-colors">Reject</button>
+          <button onclick={() => updateStatus('APPROVED')} disabled={isSubmitting || (fulfillmentAgents.length === 0)} class="flex-1 bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors">{isSubmitting ? 'Approving...' : 'Approve'}</button>
         </div>
       {/if}
+    </div>
+  </div>
+{/if}
+
+{#if showPayoutModal && selectedAgentForPayout}
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+      <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+        <h2 class="text-xl font-black text-slate-900">Pay Bonus</h2>
+        <button class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full hover:bg-slate-100 transition-colors" onclick={() => { showPayoutModal = false; payoutProofPreview = ''; payoutProofFile = null; }}><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+      
+      <div class="p-6 bg-slate-50/50">
+        <p class="text-sm text-slate-600 mb-4">You are paying <span class="font-bold text-slate-900">{selectedAgentForPayout.name}</span> their pending bonus of <span class="font-bold text-rose-600">${(agentPendingBonuses.get(selectedAgentForPayout.id) || 0).toFixed(2)}</span>.</p>
+        
+        <div class="mb-4">
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Upload Transfer Screenshot</label>
+          <input type="file" accept="image/*" onchange={handleProofSelect} class="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-all cursor-pointer border border-slate-200 rounded-xl bg-white" />
+        </div>
+
+        {#if payoutProofPreview}
+          <div class="mt-4 rounded-xl overflow-hidden border border-slate-200 shadow-sm relative">
+            <img src={payoutProofPreview} alt="Preview" class="w-full h-48 object-cover">
+          </div>
+        {/if}
+      </div>
+      
+      <div class="p-6 border-t border-slate-100 bg-white">
+        <button onclick={payBonus} disabled={isSubmitting || !payoutProofFile} class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+          {isSubmitting ? 'Processing Payout...' : 'Send Payout'}
+        </button>
+      </div>
     </div>
   </div>
 {/if}
@@ -479,5 +537,4 @@
 {/if}
 
 <BottomNav role="MANAGER" bind:showProfile={showProfile} />
-
 <ProfileModal bind:showProfile />

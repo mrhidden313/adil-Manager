@@ -40,8 +40,9 @@ app.use('/api/users', userRoutes);
 import companyRoutes from './routes/company.routes';
 app.use('/api/companies', companyRoutes);
 
-import padRoutes from './routes/pad.routes';
-app.use('/api/pads', padRoutes);
+
+import payoutRoutes from './routes/payout.routes';
+app.use('/api/payouts', payoutRoutes);
 
 import notificationRoutes from './routes/notification.routes';
 app.use('/api/notifications', notificationRoutes);
