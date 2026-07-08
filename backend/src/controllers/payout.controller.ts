@@ -129,10 +129,10 @@ export const listPayouts = async (req: AuthRequest, res: Response): Promise<void
 
 export const approvePayout = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const payoutId = req.params.id as string;
     const userId = req.user!.id;
 
-    const payout = await prisma.payout.findUnique({ where: { id } });
+    const payout = await prisma.payout.findUnique({ where: { id: payoutId } });
 
     if (!payout) {
       res.status(404).json({ error: 'Payout not found' });
@@ -145,7 +145,7 @@ export const approvePayout = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     const updatedPayout = await prisma.payout.update({
-      where: { id },
+      where: { id: payoutId },
       data: { status: 'APPROVED' }
     });
 
