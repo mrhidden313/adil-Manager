@@ -3,7 +3,7 @@
 
 ## 1. VISION & MISSION
 AK FLOW is a B2B SaaS platform designed to manage multiple tenant agencies. It allows the Super Admin to onboard "Agencies" (Companies), assign Managers to them, and let those Managers handle their own Sales and Fulfillment teams.
-The core workflow: Sales agents submit "Pads" or "Tickets", and Fulfillment agents process and complete them.
+The core workflow: Sales agents submit Tickets, and Fulfillment agents process and complete them.
 
 ## 2. TECH STACK & INFRASTRUCTURE
 * **Frontend:** SvelteKit (Svelte 5), TailwindCSS v4, Vite PWA.
@@ -14,6 +14,7 @@ The core workflow: Sales agents submit "Pads" or "Tickets", and Fulfillment agen
   * *Web Server:* Nginx acts as a reverse proxy, routing traffic from Port 443 (HTTPS) to Port 3000 (Node.js).
   * *SSL:* Let's Encrypt / Certbot is used for the domain `akflow.duckdns.org`.
 * **Database:** PostgreSQL (Hosted on Supabase).
+* **File Storage:** Supabase Storage bucket named `proofs` (used for payment proof screenshots and profile pictures).
 
 ## 3. AUTHENTICATION & SECURITY
 * **System:** Custom JWT-based stateless authentication.
@@ -21,22 +22,136 @@ The core workflow: Sales agents submit "Pads" or "Tickets", and Fulfillment agen
 * **Super Admin Login:** adminadil@akflow.com / adill1122@@@
 * **Critical Security Patch:** The JWT middleware (`auth.middleware.ts`) was specifically modified to query the database on every request to ensure the user still exists and is `isActive`. This was done to prevent deleted users from retaining access via unexpired JWT tokens.
 
-## 4. CRITICAL PROBLEMS FACED & SOLVED
-If you are an AI reading this, DO NOT revert these fixes:
-1. **Vercel 500 Internal Server Errors:** The frontend heavily relies on `sessionStorage` and browser APIs. During early deployments, Vercel attempted to render pages on the server (SSR), causing massive 500 crashes because `sessionStorage` is undefined in Node.js. 
-   * *Solution:* We created `src/routes/+layout.ts` with `export const ssr = false;`. DO NOT re-enable SSR.
-2. **Missing Imports in Svelte:** Un-imported capitalized components (like `<BottomNav>`) cause Vercel builds to crash at runtime. Always ensure every component is explicitly imported.
-3. **VPS Nginx Configuration:** The backend requires HTTPS to communicate with Vercel. We used DuckDNS (`akflow.duckdns.org`) and Nginx to bridge this. The proxy headers `X-Forwarded-Proto` and WebSockets `Upgrade` headers are required in the Nginx config for this to work smoothly.
-4. **Database Resets:** The project relies on `src/seed.ts` to create the initial Super Admin. To wipe the database safely, we use `npx prisma db push --force-reset` and then run the seed script.
+## 4. VPS SERVER DETAILS
+* **Provider:** Linode (Akamai Cloud)
+* **IP Address:** `69.164.245.230`
+* **OS:** Ubuntu Linux
+* **User:** root
+* **Domain:** `akflow.duckdns.org` (free DuckDNS domain pointing to VPS IP)
+* **SSH Access:** `ssh root@69.164.245.230` (User runs this in their terminal - AI must NEVER run SSH commands)
+* **Process Manager:** PM2 — keeps the Node.js backend alive 24/7
+* **Web Server:** Nginx — reverse proxy that forwards HTTPS:443 → localhost:3000
+* **SSL:** Certbot (Let's Encrypt) — auto-renewing free SSL certificate for `akflow.duckdns.org`
+* **Backend Port:** 3000 (internal), exposed as 443/HTTPS via Nginx
 
-## 5. REPOSITORY STRUCTURE
-* `/frontend/` - Contains all SvelteKit code.
-  * `.env` contains `VITE_API_URL=https://akflow.duckdns.org`.
-* `/backend/` - Contains all Node.js Express code.
-  * `.env` contains `DATABASE_URL` (Supabase) and `JWT_SECRET`.
-  * `src/routes/` and `src/controllers/` handle API logic.
-  * `prisma/schema.prisma` holds the database schema.
+## 5. DIRECTORY STRUCTURE ON VPS
+```
+/root/adil-Manager/              <- Root project folder (GitHub repo cloned here)
+  ├── backend/                   <- Node.js Express TypeScript backend
+  │   ├── src/
+  │   │   ├── controllers/       <- Business logic (auth, ticket, payout, etc.)
+  │   │   ├── routes/            <- Express route definitions
+  │   │   ├── middleware/        <- Auth middleware (JWT check + isActive DB check)
+  │   │   ├── lib/               <- Supabase client, etc.
+  │   │   ├── prisma.ts          <- Prisma client singleton
+  │   │   ├── socket.ts          <- Socket.IO setup
+  │   │   └── index.ts           <- Main Express app entry point
+  │   ├── prisma/
+  │   │   └── schema.prisma      <- Database schema (source of truth)
+  │   ├── dist/                  <- Compiled JavaScript (output of npm run build)
+  │   │   └── index.js           <- PM2 runs THIS file
+  │   ├── prisma.config.ts       <- Prisma config (points to .env for DATABASE_URL)
+  │   ├── tsconfig.json          <- TypeScript config
+  │   ├── package.json
+  │   └── .env                   <- SECRET: DATABASE_URL, JWT_SECRET, SUPABASE keys
+  ├── frontend/                  <- SvelteKit frontend (deployed on Vercel, NOT on VPS)
+  │   ├── src/
+  │   │   ├── routes/            <- SvelteKit pages
+  │   │   │   ├── +layout.ts     <- SSR disabled here (export const ssr = false)
+  │   │   │   ├── +layout.svelte <- Global layout + Toast component
+  │   │   │   ├── manager/       <- Manager dashboard pages
+  │   │   │   ├── sales/         <- Sales agent dashboard
+  │   │   │   ├── fulfillment/   <- Fulfillment agent dashboard
+  │   │   │   ├── admin/         <- Super Admin dashboard
+  │   │   │   └── chat/          <- Real-time team chat
+  │   │   └── lib/
+  │   │       ├── components/    <- Shared Svelte components (BottomNav, ProfileModal, etc.)
+  │   │       └── stores/        <- Svelte stores (toast, etc.)
+  │   └── .env                   <- VITE_API_URL=https://akflow.duckdns.org
+  ├── .agents/
+  │   └── AGENTS.md              <- Rules for AI agents working on this project
+  └── ai_brain.txt               <- THIS FILE - Read before making any changes
+```
+
+## 6. HOW TO APPLY BACKEND CHANGES (Step by Step)
+
+AI makes changes locally → User runs commands on VPS via SSH
+
+### Step 1: AI makes code changes locally and pushes to GitHub
+The AI edits files in `c:\Users\salar pc\Documents\Adil manager\` and runs:
+  git add .
+  git commit -m "description of changes"
+  git push
+
+### Step 2: User SSHs into VPS and runs these commands
+  cd ~/adil-Manager/backend
+
+  git pull                                      # Pull latest code from GitHub
+  npm install                                   # Install any new dependencies
+  npx prisma db push --accept-data-loss         # ONLY if schema.prisma changed
+  npx prisma generate                           # ONLY if schema.prisma changed
+  npm run build                                 # CRITICAL: compile TypeScript to JS
+  pm2 restart backend                           # Restart the live server
+
+### If PM2 says "Process not found" (first-time or after server reboot):
+  pm2 start dist/index.js --name backend        # Start fresh
+  pm2 save                                      # Save process list for auto-restart
+  pm2 startup                                   # Make PM2 auto-start on boot (run once)
+
+### Useful PM2 Commands:
+  pm2 status           # See if backend is running (should say 'online')
+  pm2 logs backend     # See live backend logs (errors, crashes)
+  pm2 restart backend  # Restart after code changes
+  pm2 stop backend     # Stop the server
+
+### Step 3: Frontend changes are automatic
+The frontend is on Vercel. When AI pushes to GitHub, Vercel auto-detects the
+change and rebuilds within 1-2 minutes. No manual action needed by the user.
+
+## 7. CRITICAL PROBLEMS FACED & SOLVED
+If you are an AI reading this, DO NOT revert these fixes:
+
+1. **Vercel SSR 500 Errors:** Frontend uses sessionStorage which is undefined in Node.js.
+   Solution: `src/routes/+layout.ts` has `export const ssr = false;` — DO NOT remove this.
+
+2. **Missing Svelte Imports:** Un-imported capitalized components crash Vercel builds.
+   Solution: Always explicitly import every component used in a Svelte file.
+
+3. **Nginx WebSocket Config:** Socket.IO requires special Upgrade headers in Nginx config.
+   The proxy_set_header Upgrade and Connection headers must be present.
+
+4. **TypeScript Build Errors:** npm run build (tsc) MUST succeed before pm2 restart.
+   If build fails, the old dist/index.js keeps running with old code. Fix TS errors first.
+
+5. **PM2 "Process not found":** Happens after server reboots. Use pm2 start instead of
+   pm2 restart. Then run pm2 save to persist the process list.
+
+6. **Prisma Client Mismatch:** After schema changes, always run npx prisma generate on
+   the VPS after pushing. Otherwise the old client types will be used even with new DB schema.
+
+## 8. REPOSITORY INFO
+* Local path: `c:\Users\salar pc\Documents\Adil manager\`
+* GitHub Repo: `https://github.com/mrhidden313/adil-Manager`
+* Default branch: `main`
+
+## 9. BUSINESS LOGIC
+* **Ticket System:** Sales agents create Tickets with a `price` field. Each ticket
+  automatically gets `bonusAmount = price * 0.10` (10% commission for the sales agent).
+* **Payout System:** Manager reviews completed tickets with bonusStatus=PENDING, then
+  triggers a Payout by uploading a proof screenshot. The agent approves it from their dashboard.
+* **Multi-tenancy:** Each Company (Agency) is isolated. Managers only see their own team.
+  Super Admin can see everything and impersonate any company.
+* **Chat:** Real-time team chat via Socket.IO, scoped per company. Can be disabled per company.
+
+## 10. DEPLOYMENT CONSTRAINTS FOR AI
+* NEVER use the `ssh` command — always provide commands for the user to run manually.
+* NEVER run `git push --force`.
+* After any backend TypeScript changes, always remind user to run: git pull, npm install,
+  npm run build, pm2 restart backend (and prisma commands if schema changed).
+* Frontend on Vercel auto-deploys on every git push — no frontend deployment commands needed.
 
 ---
-**TO FUTURE AI AGENTS:**
-You are working on a highly secure, multi-tenant SaaS application. Always consider the impact of your changes on the authentication middleware, and always ensure frontend routing and state remains strictly client-side (CSR). 
+TO FUTURE AI AGENTS:
+You are working on a highly secure, multi-tenant SaaS application. Always consider the
+impact of your changes on the authentication middleware, and always ensure frontend routing
+and state remains strictly client-side (CSR). Read this file entirely before making ANY changes.
