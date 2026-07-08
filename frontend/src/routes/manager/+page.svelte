@@ -6,9 +6,7 @@
   import BottomNav from '$lib/components/BottomNav.svelte';
   import Lightbox from '$lib/components/Lightbox.svelte';
   
-  import { Line } from 'svelte-chartjs';
-  import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, Filler } from 'chart.js';
-  ChartJS.register(Title, Tooltip, Legend, LineElement, LinearScale, PointElement, CategoryScale, Filler);
+
 
   let tickets: any[] = $state([]);
   let payouts: any[] = $state([]);
@@ -40,8 +38,10 @@
   let activeTab = $state('ORDERS'); // ORDERS, PAYOUTS
   let ordersTab = $state('PENDING'); // PENDING, APPROVED, COMPLETED
 
-  // Computed Stats
-  let totalAmount = $derived(tickets.reduce((acc, t) => acc + (t.price || 0), 0));
+  // Computed Stats — REJECTED tickets excluded from all totals
+  let activeTickets = $derived(tickets.filter(t => t.status !== 'REJECTED'));
+  let totalAmount = $derived(activeTickets.reduce((acc, t) => acc + (t.price || 0), 0));
+  let totalTickets = $derived(activeTickets.length);
   let totalBonusPending = $derived(tickets.filter(t => t.bonusStatus === 'PENDING' && t.status === 'COMPLETED').reduce((acc, t) => acc + (t.bonusAmount || 0), 0));
   let totalBonusPaid = $derived(tickets.filter(t => t.bonusStatus === 'PAID').reduce((acc, t) => acc + (t.bonusAmount || 0), 0));
 
@@ -90,44 +90,6 @@
     return () => clearInterval(pollInterval);
   });
 
-  // Chart Data
-  let chartData = $derived.by(() => {
-    // Group tickets by last 7 days
-    const days = [...Array(7)].map((_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-    }).reverse();
-
-    const dataPoints = days.map(dayStr => {
-      return tickets.filter(t => new Date(t.createdAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) === dayStr)
-                    .reduce((acc, t) => acc + (t.price || 0), 0);
-    });
-
-    return {
-      labels: days,
-      datasets: [
-        {
-          label: 'Sales Amount ($)',
-          data: dataPoints,
-          borderColor: '#6366f1',
-          backgroundColor: 'rgba(99, 102, 241, 0.1)',
-          fill: true,
-          tension: 0.4
-        }
-      ]
-    };
-  });
-  
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: { 
-      y: { beginAtZero: true, grid: { display: false } },
-      x: { grid: { display: false } }
-    }
-  };
 
   function openTicket(ticket: any) {
     selectedTicket = ticket;
@@ -307,38 +269,29 @@
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
             <div class="absolute right-0 top-0 w-24 h-24 bg-indigo-500/5 rounded-bl-full"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Generated</p>
-            <p class="text-3xl font-black text-slate-900">${totalAmount.toLocaleString()}</p>
-            <p class="text-xs text-indigo-600 font-bold mt-2">{tickets.length} Tickets</p>
+            <p class="text-3xl font-black text-slate-900">PKR {totalAmount.toLocaleString()}</p>
+            <p class="text-xs text-indigo-600 font-bold mt-2">{totalTickets} Tickets</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
+            <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/5 rounded-bl-full"></div>
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Tickets</p>
+            <p class="text-3xl font-black text-blue-600">{totalTickets}</p>
+            <p class="text-xs text-slate-500 font-medium mt-2">Excluding rejected</p>
           </div>
           
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
             <div class="absolute right-0 top-0 w-24 h-24 bg-rose-500/5 rounded-bl-full"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pending Bonus</p>
-            <p class="text-3xl font-black text-rose-600">${totalBonusPending.toLocaleString()}</p>
+            <p class="text-3xl font-black text-rose-600">PKR {totalBonusPending.toLocaleString()}</p>
             <p class="text-xs text-slate-500 font-medium mt-2">To be paid to agents</p>
           </div>
           
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
             <div class="absolute right-0 top-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Paid Bonus</p>
-            <p class="text-3xl font-black text-emerald-600">${totalBonusPaid.toLocaleString()}</p>
+            <p class="text-3xl font-black text-emerald-600">PKR {totalBonusPaid.toLocaleString()}</p>
             <p class="text-xs text-slate-500 font-medium mt-2">Total payouts processed</p>
-          </div>
-
-          <div class="bg-gradient-to-br from-indigo-900 to-slate-900 p-5 rounded-2xl shadow-md border border-indigo-800 text-white flex flex-col justify-between">
-            <div>
-              <p class="text-xs font-bold text-indigo-300 uppercase tracking-wider mb-1">Staff Size</p>
-              <p class="text-3xl font-black">{salesAgents.length + fulfillmentAgents.length}</p>
-            </div>
-            <p class="text-xs text-indigo-200 font-medium">{salesAgents.length} Sales · {fulfillmentAgents.length} Local</p>
-          </div>
-        </div>
-
-        <!-- Sales Chart -->
-        <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
-          <h3 class="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wider">7-Day Sales Volume</h3>
-          <div class="h-64 w-full">
-            <Line data={chartData} options={chartOptions} />
           </div>
         </div>
 
@@ -375,7 +328,7 @@
                 <div>
                   <div class="flex items-center space-x-3 mb-2 flex-wrap gap-y-2">
                     <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-slate-50 text-slate-700 border-slate-200">{ticket.status}</span>
-                    <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-emerald-50 text-emerald-700 border-emerald-200">${ticket.price}</span>
+                    <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-emerald-50 text-emerald-700 border-emerald-200">PKR {ticket.price}</span>
                   </div>
                   <p class="font-bold text-slate-900 text-lg truncate w-[200px] sm:w-[300px] md:w-auto">{ticket.genericData?.name || ticket.transactionId}</p>
                   <p class="text-xs font-medium text-slate-500 mt-1">By: {ticket.createdBy?.name}</p>
@@ -401,7 +354,7 @@
                 <div class="flex items-center gap-4 flex-col sm:flex-row w-full sm:w-auto">
                   <div class="text-center sm:text-right">
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pending Bonus</p>
-                    <p class="text-xl font-black text-slate-900">${pending.toFixed(2)}</p>
+                    <p class="text-xl font-black text-slate-900">PKR {pending.toLocaleString()}</p>
                   </div>
                   <button 
                     onclick={() => { selectedAgentForPayout = agent; showPayoutModal = true; }} 
@@ -431,7 +384,7 @@
                   </span>
                 </div>
                 <div class="flex items-center gap-4">
-                  <span class="text-xl font-black text-slate-900">${payout.amount.toFixed(2)}</span>
+                  <span class="text-xl font-black text-slate-900">PKR {payout.amount.toLocaleString()}</span>
                   <button onclick={() => openLightbox(payout.proofUrl)} class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="View Proof">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
                   </button>
@@ -460,8 +413,8 @@
             <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Order Details</span>
             <div class="grid grid-cols-2 gap-4">
               <div><span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Customer Name</span><span class="text-slate-800 font-semibold">{selectedTicket.genericData.name || 'N/A'}</span></div>
-              <div><span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Total Amount</span><span class="text-emerald-600 font-bold">${selectedTicket.price}</span></div>
-              <div><span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Agent Bonus (10%)</span><span class="text-rose-600 font-bold">${selectedTicket.bonusAmount}</span></div>
+              <div><span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Total Amount</span><span class="text-emerald-600 font-bold">PKR {selectedTicket.price}</span></div>
+              <div><span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Agent Bonus (10%)</span><span class="text-rose-600 font-bold">PKR {selectedTicket.bonusAmount}</span></div>
             </div>
           </div>
         {/if}
@@ -509,7 +462,7 @@
       </div>
       
       <div class="p-6 bg-slate-50/50">
-        <p class="text-sm text-slate-600 mb-4">You are paying <span class="font-bold text-slate-900">{selectedAgentForPayout.name}</span> their pending bonus of <span class="font-bold text-rose-600">${(agentPendingBonuses.get(selectedAgentForPayout.id) || 0).toFixed(2)}</span>.</p>
+        <p class="text-sm text-slate-600 mb-4">You are paying <span class="font-bold text-slate-900">{selectedAgentForPayout.name}</span> their pending bonus of <span class="font-bold text-rose-600">PKR {(agentPendingBonuses.get(selectedAgentForPayout.id) || 0).toLocaleString()}</span>.</p>
         
         <div class="mb-4">
           <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Upload Transfer Screenshot</label>

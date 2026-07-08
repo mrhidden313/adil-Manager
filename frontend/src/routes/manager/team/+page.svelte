@@ -12,6 +12,8 @@
 
   let showStatsModal = $state(false);
   let selectedAgent: any = $state(null);
+  let payBonusAmount = $state('');
+  let isPayingBonus = $state(false);
 
   let newName = $state('');
   let newEmail = $state('');
@@ -99,7 +101,39 @@
 
   function openAgentStats(agent: any) {
     selectedAgent = agent;
+    payBonusAmount = '';
     showStatsModal = true;
+  }
+
+  async function payBonusDirect() {
+    const amount = parseFloat(payBonusAmount);
+    if (!amount || amount <= 0) return toast.add('Enter a valid amount', 'error');
+    const pendingBonus = getAgentStats(selectedAgent).totalRevenue * 0.1 - (selectedAgent._paidBonus || 0);
+    // Use the payout API
+    isPayingBonus = true;
+    const token = sessionStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('agentId', selectedAgent.id);
+    formData.append('amount', amount.toString());
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/payouts/pay`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      if (res.ok) {
+        toast.add(`PKR ${amount.toLocaleString()} marked as paid to ${selectedAgent.name}`, 'success');
+        payBonusAmount = '';
+        fetchTeamData();
+      } else {
+        const err = await res.json();
+        toast.add(err.error || 'Failed to pay bonus', 'error');
+      }
+    } catch {
+      toast.add('Network error', 'error');
+    } finally {
+      isPayingBonus = false;
+    }
   }
 
   function getAgentStats(agent: any) {
@@ -309,6 +343,40 @@
             <div class="bg-white p-5 rounded-2xl border border-indigo-200 shadow-sm text-center">
               <p class="text-4xl font-black text-indigo-600 mb-1">{stats.approved}</p>
               <p class="text-xs font-bold text-indigo-600 uppercase tracking-wide">Approved</p>
+            </div>
+          </div>
+          
+          <!-- Pay Bonus section -->
+          <div class="mt-6 bg-indigo-50 border border-indigo-200 p-5 rounded-2xl shadow-sm">
+            {#if selectedAgent.paymentAccountType}
+              <div class="mb-4 pb-4 border-b border-indigo-100">
+                <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Agent Payment Details</p>
+                <div class="flex justify-between items-center bg-white p-3 rounded-xl border border-indigo-100">
+                  <span class="text-sm font-bold text-slate-800">{selectedAgent.paymentAccountType}</span>
+                  <span class="text-sm font-mono text-indigo-700 bg-indigo-50 px-2 py-1 rounded">{selectedAgent.paymentAccountNumber || 'N/A'}</span>
+                </div>
+              </div>
+            {:else}
+              <div class="mb-4 pb-4 border-b border-indigo-100">
+                <p class="text-xs text-rose-500 font-medium">⚠️ Agent hasn't set up payment details yet.</p>
+              </div>
+            {/if}
+            
+            {@const pendingBonus = stats.totalRevenue * 0.1 - (selectedAgent._paidBonus || 0)}
+            <div class="flex justify-between items-end mb-2">
+              <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Pay Bonus (PKR)</p>
+              <p class="text-xs font-medium text-slate-500">Suggested: <span class="font-bold text-rose-600">PKR {pendingBonus.toLocaleString()}</span></p>
+            </div>
+            <div class="flex gap-2">
+              <input type="number" bind:value={payBonusAmount} placeholder="Enter amount" min="1" class="flex-1 px-4 py-2.5 border border-indigo-300 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm" />
+              <button onclick={payBonusDirect} disabled={isPayingBonus || !payBonusAmount} class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm shadow-indigo-600/30 flex items-center gap-2">
+                {#if isPayingBonus}
+                  <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  Processing...
+                {:else}
+                  Pay Now
+                {/if}
+              </button>
             </div>
           </div>
         {:else}

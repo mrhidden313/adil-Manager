@@ -22,7 +22,8 @@
   // Create Order Modal State
   let showModal = $state(false);
   let customerName = $state('');
-  let phoneNumber = $state('');
+  let countryCode = $state('+92');
+  let phoneDigits = $state('');
   let amount = $state('');
   let paymentMethod = $state('EASYPAISA'); // EASYPAISA, JAZZCASH, BANK
   let bankType = $state('');
@@ -34,9 +35,10 @@
 
   let activeTab = $state('ORDERS'); // ORDERS, PAYOUTS
 
-  // Stats
-  let totalSales = $derived(tickets.reduce((sum, t) => sum + (t.price || 0), 0));
-  let totalTickets = $derived(tickets.length);
+  // Stats — REJECTED excluded from all totals
+  let activeTickets = $derived(tickets.filter(t => t.status !== 'REJECTED'));
+  let totalSales = $derived(activeTickets.reduce((sum, t) => sum + (t.price || 0), 0));
+  let totalTickets = $derived(activeTickets.length);
   let pendingBonus = $derived(tickets.filter(t => t.bonusStatus === 'PENDING' && t.status === 'COMPLETED').reduce((sum, t) => sum + (t.bonusAmount || 0), 0));
   let paidBonus = $derived(payouts.filter(p => p.status === 'APPROVED').reduce((sum, p) => sum + p.amount, 0));
 
@@ -84,7 +86,7 @@
       
       formData.append('genericData', JSON.stringify({
         name: customerName,
-        phone: phoneNumber,
+        phone: countryCode + phoneDigits,
         paymentMethod,
         bankType: paymentMethod === 'BANK' ? bankType : '',
         notes
@@ -100,7 +102,7 @@
       
       if (res.ok) {
         showModal = false;
-        customerName = ''; phoneNumber = ''; amount = ''; paymentMethod = 'EASYPAISA'; bankType = ''; notes = ''; proofFile = null;
+        customerName = ''; countryCode = '+92'; phoneDigits = ''; amount = ''; paymentMethod = 'EASYPAISA'; bankType = ''; notes = ''; proofFile = null;
         toast.add('Order submitted! You will earn a 10% bonus when completed.', 'success');
         fetchData();
       } else {
@@ -246,13 +248,20 @@
           </button>
         </div>
 
-        <!-- Top Cinematic Stats -->
+        <!-- Top Stats -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
             <div class="absolute right-0 top-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Sales</p>
             <p class="text-3xl font-black text-slate-900">PKR {totalSales.toLocaleString()}</p>
             <p class="text-xs text-emerald-600 font-bold mt-2">{totalTickets} Orders</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
+            <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/5 rounded-bl-full"></div>
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Tickets</p>
+            <p class="text-3xl font-black text-blue-600">{totalTickets}</p>
+            <p class="text-xs text-slate-500 font-medium mt-2">Active orders</p>
           </div>
           
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
@@ -376,7 +385,17 @@
 
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Phone Number</label>
-            <input type="tel" bind:value={phoneNumber} placeholder="e.g., 03001234567" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+            <div class="flex space-x-2">
+              <select bind:value={countryCode} class="w-28 px-2 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm font-medium">
+                <option value="+92">🇵🇰 +92</option>
+                <option value="+1">🇺🇸 +1</option>
+                <option value="+44">🇬🇧 +44</option>
+                <option value="+91">🇮🇳 +91</option>
+                <option value="+971">🇦🇪 +971</option>
+                <option value="+966">🇸🇦 +966</option>
+              </select>
+              <input type="tel" bind:value={phoneDigits} placeholder="3001234567" class="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+            </div>
           </div>
 
           <div>
