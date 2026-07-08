@@ -150,15 +150,159 @@
       </div>
       <h1 class="text-xl font-bold text-white tracking-tight">AK Flow</h1>
     </div>
+  import BottomNav from '$lib/components/BottomNav.svelte';
+
+  let team: any[] = $state([]);
+  let allTickets: any[] = $state([]);
+  let activeTab = $state('ACTIVE'); // 'ACTIVE', 'DISABLED'
+  let showProfile = $state(false);
+  let showAddTeamModal = $state(false);
+
+  // Agent Stats Modal
+  let showStatsModal = $state(false);
+  let selectedAgent: any = $state(null);
+
+  // New Team Member Form
+  let newName = $state('');
+  let newEmail = $state('');
+  let newPassword = $state('');
+  let newRole = $state('SALES');
+  let isCreating = $state(false);
+
+  let filteredTeam = $derived.by(() => {
+    return team.filter(member => {
+      if (activeTab === 'ACTIVE') return member.isActive;
+      if (activeTab === 'DISABLED') return !member.isActive;
+      return true;
+    });
+  });
+
+  async function fetchTeamData() {
+    const token = sessionStorage.getItem('token');
+    
+    // Fetch Team
+    const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/users/team', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.ok) {
+      team = await res.json();
+    }
+
+    // Fetch all tickets to calculate stats
+    const resTickets = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (resTickets.ok) {
+      allTickets = await resTickets.json();
+    }
+  }
+
+  onMount(() => {
+    fetchTeamData();
+  });
+
+  async function handleAddTeamMember(e: Event) {
+    e.preventDefault();
+    isCreating = true;
+    const token = sessionStorage.getItem('token');
+
+    try {
+      const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/users/team', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: newName, email: newEmail, password: newPassword, role: newRole })
+      });
+      
+      if (res.ok) {
+        showAddTeamModal = false;
+        newName = ''; newEmail = ''; newPassword = ''; newRole = 'SALES';
+        fetchTeamData();
+        activeTab = 'ACTIVE';
+      } else {
+        const data = await res.json();
+        toast.add(data.error || 'Failed to create team member', 'error');
+      }
+    } catch (err) {
+      toast.add('Network error', 'error');
+    } finally {
+      isCreating = false;
+    }
+  }
+
+  async function toggleStatus(userId: string, currentStatus: boolean, e?: Event) {
+    if (e) e.stopPropagation();
+    const newStatus = !currentStatus;
+    if (!confirm(`Are you sure you want to ${newStatus ? 'activate' : 'disable'} this agent?`)) return;
+    
+    const token = sessionStorage.getItem('token');
+    await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/users/team/${userId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ isActive: newStatus })
+    });
+    fetchTeamData();
+  }
+
+  async function deleteTeamMember(userId: string, userName: string, e?: Event) {
+    if (e) e.stopPropagation();
+    if (!confirm(`WARNING: Are you sure you want to permanently delete agent "${userName}"? This action cannot be undone.`)) return;
+    
+    const token = sessionStorage.getItem('token');
+    const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/users/team/${userId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (res.ok) {
+      fetchTeamData();
+    } else {
+      const data = await res.json();
+      toast.add(data.error || 'Failed to delete agent.', 'error');
+    }
+  }
+
+  function openAgentStats(agent: any) {
+    selectedAgent = agent;
+    showStatsModal = true;
+  }
+
+  function getAgentStats(agent: any) {
+    if (agent.role === 'SALES') {
+      const submitted = allTickets.filter(t => t.createdById === agent.id);
+      const pending = submitted.filter(t => t.status === 'PENDING').length;
+      const approved = submitted.filter(t => t.status === 'APPROVED').length;
+      const completedTickets = submitted.filter(t => t.status === 'COMPLETED');
+      const completed = completedTickets.length;
+      const totalRevenue = completedTickets.reduce((sum, t) => sum + (parseFloat(t.genericData?.amount) || 0), 0);
+      return { total: submitted.length, pending, approved, completed, totalRevenue };
+    } else {
+      // FULFILLMENT
+      const assigned = allTickets.filter(t => t.assignedToId === agent.id);
+      const pendingWork = assigned.filter(t => t.status === 'APPROVED').length;
+      const completedWork = assigned.filter(t => t.status === 'COMPLETED').length;
+      return { total: assigned.length, pendingWork, completedWork };
+    }
+  }
+</script>
+
+<div class="flex h-screen bg-slate-50 text-slate-900 font-sans">
+  
+  <!-- Sidebar -->
+  <aside class="w-64 bg-slate-900 text-slate-300 flex-col hidden md:flex shadow-2xl z-10">
+    <div class="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950">
+      <div class="w-8 h-8 rounded-full overflow-hidden mr-3 shadow-lg shadow-indigo-500/20 bg-indigo-50 flex items-center justify-center">
+        <img src="/logo.png" alt="Logo" class="w-full h-full object-cover scale-110" onerror={(e) => e.currentTarget.style.display='none'} />
+      </div>
+      <h1 class="text-xl font-bold text-white tracking-tight">AK Flow</h1>
+    </div>
     <div class="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
       <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">Agency Operations</div>
       <button class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-300 px-3 py-2.5 rounded-lg font-medium transition-colors" onclick={() => window.location.href='/manager'}>
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
         <span>Orders (Tasks)</span>
-      </button>
-      <button class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-300 px-3 py-2.5 rounded-lg font-medium transition-colors" onclick={() => window.location.href='/manager/pads'}>
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-        <span>Pads (Copies)</span>
       </button>
       <button class="w-full flex items-center space-x-3 bg-indigo-500/10 text-indigo-400 px-3 py-2.5 rounded-lg font-medium transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
