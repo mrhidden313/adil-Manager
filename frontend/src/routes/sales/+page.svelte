@@ -390,17 +390,11 @@
 
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Payment Method</label>
-            <div class="flex gap-2">
-              <button type="button" onclick={() => paymentMethod = 'EASYPAISA'} class="flex-1 py-2.5 rounded-xl text-xs font-bold border transition-all {paymentMethod === 'EASYPAISA' ? 'bg-green-600 text-white border-green-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-green-300'}">
-                EasyPaisa
-              </button>
-              <button type="button" onclick={() => paymentMethod = 'JAZZCASH'} class="flex-1 py-2.5 rounded-xl text-xs font-bold border transition-all {paymentMethod === 'JAZZCASH' ? 'bg-red-600 text-white border-red-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-red-300'}">
-                JazzCash
-              </button>
-              <button type="button" onclick={() => paymentMethod = 'BANK'} class="flex-1 py-2.5 rounded-xl text-xs font-bold border transition-all {paymentMethod === 'BANK' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}">
-                Bank
-              </button>
-            </div>
+            <select bind:value={paymentMethod} class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm font-medium">
+              <option value="EASYPAISA">EasyPaisa</option>
+              <option value="JAZZCASH">JazzCash</option>
+              <option value="BANK">Bank Transfer</option>
+            </select>
           </div>
 
           {#if paymentMethod === 'BANK'}
