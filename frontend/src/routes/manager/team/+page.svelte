@@ -323,6 +323,7 @@
       <div class="p-8 bg-slate-50/50">
         {#if selectedAgent.role === 'SALES'}
           {@const stats = getAgentStats(selectedAgent)}
+          {@const pendingBonus = stats.totalRevenue * 0.1 - (selectedAgent._paidBonus || 0)}
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-gradient-to-br from-emerald-500 to-emerald-700 p-5 rounded-2xl shadow-sm text-center col-span-2 text-white">
               <p class="text-xs font-bold uppercase tracking-wide opacity-80 mb-1">Total Generated (Completed)</p>
@@ -362,7 +363,6 @@
               </div>
             {/if}
             
-            {@const pendingBonus = stats.totalRevenue * 0.1 - (selectedAgent._paidBonus || 0)}
             <div class="flex justify-between items-end mb-2">
               <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Pay Bonus (PKR)</p>
               <p class="text-xs font-medium text-slate-500">Suggested: <span class="font-bold text-rose-600">PKR {pendingBonus.toLocaleString()}</span></p>
