@@ -10,9 +10,11 @@ router.use(requireAuth as any);
 router.get('/all', requireRole(['SUPER_ADMIN']) as any, getAllUsers as any);
 router.delete('/:id', requireRole(['SUPER_ADMIN']) as any, deleteUser as any);
 
-// Manager
+// Company Team
+router.get('/team', getMyTeam as any);
+
+// Manager specific
 router.post('/team', requireRole(['MANAGER']) as any, createTeamMember as any);
-router.get('/team', requireRole(['MANAGER']) as any, getMyTeam as any);
 router.patch('/team/:id/status', requireRole(['MANAGER']) as any, toggleTeamMemberStatus as any);
 router.delete('/team/:id', requireRole(['MANAGER']) as any, deleteTeamMember as any);
 
