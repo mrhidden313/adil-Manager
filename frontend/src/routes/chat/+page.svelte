@@ -426,6 +426,6 @@
 
   {#if currentUser}
     <BottomNav role={currentUser.role} bind:showProfile={showProfileModal} />
-    <ProfileModal bind:show={showProfileModal} user={currentUser} />
+    <ProfileModal bind:showProfile={showProfileModal} />
   {/if}
 </div>

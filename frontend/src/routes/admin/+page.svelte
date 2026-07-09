@@ -367,8 +367,7 @@
     </div>
   </main>
 
-<BottomNav role="SUPER_ADMIN" bind:showProfile={showProfileModal} />
-<ProfileModal bind:show={showProfileModal} user={currentUser} />
+<BottomNav role="SUPER_ADMIN" bind:showProfile />
 </div>
 
 <!-- Onboard Agency Modal -->
