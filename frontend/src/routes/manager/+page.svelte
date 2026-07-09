@@ -42,7 +42,7 @@
   // Computed Stats — REJECTED tickets excluded from all totals
   let activeTickets = $derived(tickets.filter(t => t.status !== 'REJECTED'));
   let totalAmount = $derived(activeTickets.reduce((acc, t) => acc + (t.price || 0), 0));
-  let totalTickets = $derived(activeTickets.length);
+  let totalTickets = $derived(activeTickets.reduce((sum, t) => sum + (parseInt(t.genericData?.ticketNumber) || 1), 0));
   let totalBonusEarned = $derived(tickets.filter(t => t.status === 'COMPLETED').reduce((acc, t) => acc + (t.bonusAmount || 0), 0));
   let totalBonusPaid = $derived(payouts.filter(p => p.status === 'APPROVED').reduce((acc, p) => acc + p.amount, 0));
   let totalBonusPending = $derived(totalBonusEarned - payouts.reduce((acc, p) => acc + p.amount, 0));
