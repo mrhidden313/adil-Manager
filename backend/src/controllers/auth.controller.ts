@@ -106,8 +106,9 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
     }
 
     res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+  } catch (error: any) {
+    console.error('getMe error:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 };
 
