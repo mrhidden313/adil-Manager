@@ -227,6 +227,12 @@
                   </div>
                   
                   <h3 class="font-bold text-slate-900 text-lg mb-1">{ticket.genericData?.name || ticket.transactionId}</h3>
+                  {#if ticket.genericData?.ticketNumber}
+                    <div class="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-lg px-2 py-0.5 mb-1">
+                      <span class="text-[10px] font-bold text-amber-600 uppercase tracking-wider">🎫 Tickets:</span>
+                      <span class="text-sm font-black text-amber-700">{ticket.genericData.ticketNumber}</span>
+                    </div>
+                  {/if}
                   {#if ticket.genericData?.phone}
                     <p class="text-xs font-bold text-indigo-600 mt-1">📞 {ticket.genericData.phone}</p>
                   {/if}
@@ -296,6 +302,12 @@
               <div>
                 <span class="block text-[10px] uppercase text-slate-400 font-bold mb-0.5">Notes</span>
                 <p class="text-sm text-slate-600 italic bg-slate-50 p-2 rounded-lg border border-slate-100">"{selectedTicket.genericData.notes}"</p>
+              </div>
+            {/if}
+            {#if selectedTicket.genericData?.ticketNumber}
+              <div class="pt-2 border-t border-slate-100">
+                <span class="block text-[10px] uppercase text-amber-500 font-bold mb-0.5">🎫 Number of Tickets</span>
+                <span class="text-2xl font-black text-amber-600">{selectedTicket.genericData.ticketNumber}</span>
               </div>
             {/if}
           </div>

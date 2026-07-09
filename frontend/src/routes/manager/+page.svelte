@@ -20,6 +20,7 @@
   let showPayoutModal = $state(false);
   let payoutProofFile: File | null = $state(null);
   let payoutProofPreview: string = $state('');
+  let payoutAmount = $state('');
 
   let showProfile = $state(false);
   let lightboxSrc = $state('');
@@ -136,6 +137,7 @@
     const token = sessionStorage.getItem('token');
     const formData = new FormData();
     formData.append('agentId', selectedAgentForPayout.id);
+    formData.append('amount', payoutAmount);
     formData.append('proof', payoutProofFile);
 
     try {
@@ -148,6 +150,7 @@
         showPayoutModal = false;
         payoutProofFile = null;
         payoutProofPreview = '';
+        payoutAmount = '';
         fetchData();
         toast.add('Payout sent successfully', 'success');
       } else {
@@ -329,6 +332,9 @@
                   <div class="flex items-center space-x-3 mb-2 flex-wrap gap-y-2">
                     <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-slate-50 text-slate-700 border-slate-200">{ticket.status}</span>
                     <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-emerald-50 text-emerald-700 border-emerald-200">PKR {ticket.price}</span>
+                    {#if ticket.genericData?.ticketNumber}
+                      <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-amber-50 text-amber-700 border-amber-200">🎫 {ticket.genericData.ticketNumber} tickets</span>
+                    {/if}
                   </div>
                   <p class="font-bold text-slate-900 text-lg truncate w-[200px] sm:w-[300px] md:w-auto">{ticket.genericData?.name || ticket.transactionId}</p>
                   <p class="text-xs font-medium text-slate-500 mt-1">By: {ticket.createdBy?.name}</p>
@@ -415,6 +421,9 @@
               <div><span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Customer Name</span><span class="text-slate-800 font-semibold">{selectedTicket.genericData.name || 'N/A'}</span></div>
               <div><span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Total Amount</span><span class="text-emerald-600 font-bold">PKR {selectedTicket.price}</span></div>
               <div><span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Agent Bonus (10%)</span><span class="text-rose-600 font-bold">PKR {selectedTicket.bonusAmount}</span></div>
+              {#if selectedTicket.genericData?.ticketNumber}
+              <div class="col-span-2"><span class="block text-[10px] uppercase text-amber-500 font-bold mb-1">🎫 Number of Tickets</span><span class="text-2xl font-black text-amber-600">{selectedTicket.genericData.ticketNumber}</span></div>
+              {/if}
             </div>
           </div>
         {/if}
@@ -462,11 +471,16 @@
       </div>
       
       <div class="p-6 bg-slate-50/50">
-        <p class="text-sm text-slate-600 mb-4">You are paying <span class="font-bold text-slate-900">{selectedAgentForPayout.name}</span> their pending bonus of <span class="font-bold text-rose-600">PKR {(agentPendingBonuses.get(selectedAgentForPayout.id) || 0).toLocaleString()}</span>.</p>
+        <p class="text-sm text-slate-600 mb-4">You are paying <span class="font-bold text-slate-900">{selectedAgentForPayout.name}</span> — pending bonus: <span class="font-bold text-rose-600">PKR {(agentPendingBonuses.get(selectedAgentForPayout.id) || 0).toLocaleString()}</span>.</p>
         
         <div class="mb-4">
-          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Upload Transfer Screenshot</label>
-          <input type="file" accept="image/*" onchange={handleProofSelect} class="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-all cursor-pointer border border-slate-200 rounded-xl bg-white" />
+          <label for="payout-amount" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Amount to Pay (PKR)</label>
+          <input id="payout-amount" type="number" min="1" bind:value={payoutAmount} placeholder="Enter amount e.g. 5000" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm" />
+        </div>
+        
+        <div class="mb-4">
+          <label for="payout-proof" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Upload Transfer Screenshot</label>
+          <input id="payout-proof" type="file" accept="image/*" onchange={handleProofSelect} class="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-all cursor-pointer border border-slate-200 rounded-xl bg-white" />
         </div>
 
         {#if payoutProofPreview}
@@ -477,8 +491,8 @@
       </div>
       
       <div class="p-6 border-t border-slate-100 bg-white">
-        <button onclick={payBonus} disabled={isSubmitting || !payoutProofFile} class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors">
-          {isSubmitting ? 'Processing Payout...' : 'Send Payout'}
+        <button onclick={payBonus} disabled={isSubmitting || !payoutProofFile || !payoutAmount} class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+          {isSubmitting ? 'Processing Payout...' : `Send PKR ${payoutAmount ? parseFloat(payoutAmount).toLocaleString() : '0'} Payout`}
         </button>
       </div>
     </div>
