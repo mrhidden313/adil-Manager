@@ -44,6 +44,7 @@ model Company {
   isDeleted          Boolean    @default(false)
 
   // Dynamic Settings
+  maxPadLimit        Int        @default(100)
   allowSalesChat     Boolean    @default(true)
   requireManagerApproval Boolean @default(true)
   
