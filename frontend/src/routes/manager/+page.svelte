@@ -42,6 +42,7 @@
   // Computed Stats — REJECTED tickets excluded from all totals
   let activeTickets = $derived(tickets.filter(t => t.status !== 'REJECTED'));
   let totalAmount = $derived(activeTickets.reduce((acc, t) => acc + (t.price || 0), 0));
+  let totalOrders = $derived(activeTickets.length);
   let totalTickets = $derived(activeTickets.reduce((sum, t) => sum + (parseInt(t.genericData?.ticketNumber) || 1), 0));
   let totalBonusEarned = $derived(tickets.filter(t => t.status === 'COMPLETED').reduce((acc, t) => acc + (t.bonusAmount || 0), 0));
   let totalBonusPaid = $derived(payouts.filter(p => p.status === 'APPROVED').reduce((acc, p) => acc + p.amount, 0));
@@ -279,14 +280,14 @@
             <div class="absolute right-0 top-0 w-24 h-24 bg-indigo-500/5 rounded-bl-full"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Generated</p>
             <p class="text-3xl font-black text-slate-900">PKR {totalAmount.toLocaleString()}</p>
-            <p class="text-xs text-indigo-600 font-bold mt-2">{totalTickets} Tickets</p>
+            <p class="text-xs text-indigo-600 font-bold mt-2">{totalOrders} Orders</p>
           </div>
 
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
             <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/5 rounded-bl-full"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Tickets</p>
             <p class="text-3xl font-black text-blue-600">{totalTickets}</p>
-            <p class="text-xs text-slate-500 font-medium mt-2">Excluding rejected</p>
+            <p class="text-xs text-slate-500 font-medium mt-2">Tickets sold</p>
           </div>
           
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
