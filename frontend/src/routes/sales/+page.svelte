@@ -73,53 +73,69 @@
   });
 
 
-  async function handleCreateTicket(e: Event) {
+  function handleCreateTicket(e: Event) {
     e.preventDefault();
     if (!proofFile || proofFile.length === 0) return toast.add('Please attach payment proof.', 'error');
     if (!customerName || !amount || parseFloat(amount) <= 0) return toast.add('Please provide valid customer name and amount.', 'error');
 
-    isSubmitting = true;
     const token = sessionStorage.getItem('token');
     
-    try {
-      const options = { maxSizeMB: 0.1, maxWidthOrHeight: 1024, useWebWorker: true };
-      const compressedFile = await imageCompression(proofFile[0], options);
-      
-      const formData = new FormData();
-      formData.append('transactionId', `TRX-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
-      formData.append('price', amount);
-      
-      formData.append('genericData', JSON.stringify({
-        name: customerName,
-        phone: countryCode + phoneDigits,
-        ticketNumber,
-        paymentMethod,
-        bankType: paymentMethod === 'BANK' ? bankType : '',
-        notes
-      }));
+    // Capture form values before clearing
+    const fileToUpload = proofFile[0];
+    const ticketData = {
+      amount,
+      customerName,
+      countryCode,
+      phoneDigits,
+      ticketNumber,
+      paymentMethod,
+      bankType: paymentMethod === 'BANK' ? bankType : '',
+      notes
+    };
 
-      formData.append('proof', compressedFile, proofFile[0].name);
+    // Immediately close modal and give feedback
+    showModal = false;
+    customerName = ''; countryCode = '+92'; phoneDigits = ''; ticketNumber = ''; amount = ''; paymentMethod = 'EASYPAISA'; bankType = ''; notes = ''; proofFile = null;
+    toast.add('Order processing... Uploading in background 🚀', 'success');
 
-      const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-      
-      if (res.ok) {
-        showModal = false;
-        customerName = ''; countryCode = '+92'; phoneDigits = ''; ticketNumber = ''; amount = ''; paymentMethod = 'EASYPAISA'; bankType = ''; notes = ''; proofFile = null;
-        toast.add('Order submitted! You will earn a 10% bonus when completed.', 'success');
-        fetchData();
-      } else {
-        const err = await res.json();
-        toast.add(err.error || 'Failed to create order', 'error');
+    // Run compression and upload asynchronously
+    (async () => {
+      try {
+        const options = { maxSizeMB: 0.1, maxWidthOrHeight: 1024, useWebWorker: true };
+        const compressedFile = await imageCompression(fileToUpload, options);
+        
+        const formData = new FormData();
+        formData.append('transactionId', `TRX-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
+        formData.append('price', ticketData.amount);
+        
+        formData.append('genericData', JSON.stringify({
+          name: ticketData.customerName,
+          phone: ticketData.countryCode + ticketData.phoneDigits,
+          ticketNumber: ticketData.ticketNumber,
+          paymentMethod: ticketData.paymentMethod,
+          bankType: ticketData.bankType,
+          notes: ticketData.notes
+        }));
+
+        formData.append('proof', compressedFile, fileToUpload.name);
+
+        const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        
+        if (res.ok) {
+          toast.add('Order submitted successfully! You will earn a 10% bonus when completed.', 'success');
+          fetchData();
+        } else {
+          const err = await res.json();
+          toast.add(err.error || 'Failed to create order', 'error');
+        }
+      } catch (err) {
+        toast.add('Error uploading payment proof.', 'error');
       }
-    } catch (err) {
-      toast.add('Error connecting to server.', 'error');
-    } finally {
-      isSubmitting = false;
-    }
+    })();
   }
 
   async function approvePayout(payoutId: string) {

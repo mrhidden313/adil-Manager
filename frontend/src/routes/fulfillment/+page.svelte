@@ -77,47 +77,56 @@
     showModal = true;
   }
 
-  async function handleFinishOrder(e: Event) {
+  function handleFinishOrder(e: Event) {
     e.preventDefault();
     if (!proofFile || proofFile.length === 0) return toast.add('Please attach confirmation image.', 'error');
     
-    isSubmitting = true;
     const token = sessionStorage.getItem('token');
     
-    try {
-      const options = {
-        maxSizeMB: 0.5,
-        maxWidthOrHeight: 1920,
-        useWebWorker: true
-      };
-      
-      const compressedFile = await imageCompression(proofFile[0], options);
-      
-      const formData = new FormData();
-      formData.append('status', 'COMPLETED');
-      formData.append('fulfillmentProof', compressedFile, proofFile[0].name);
+    // Capture state before clearing
+    const fileToUpload = proofFile[0];
+    const ticketId = selectedTicket.id;
+    
+    // Immediately close modal and give feedback
+    showModal = false;
+    proofFile = null;
+    toast.add('Order finishing... Uploading proof in background 🚀', 'success');
+    activeTab = 'COMPLETED'; // Optimistically switch to completed tab
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/tickets/${selectedTicket.id}/status`, {
-        method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-      
-      if (res.status === 401) { sessionStorage.clear(); window.location.href='/'; return; }
-    if (res.ok) {
-        showModal = false;
-        proofFile = null;
-        fetchTickets();
-        activeTab = 'COMPLETED'; // Switch to completed tab to show success
-      } else {
-        const errorData = await res.json();
-        toast.add(errorData.error || 'Failed to finish order', 'error');
+    // Run compression and upload asynchronously
+    (async () => {
+      try {
+        const options = {
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true
+        };
+        
+        const compressedFile = await imageCompression(fileToUpload, options);
+        
+        const formData = new FormData();
+        formData.append('status', 'COMPLETED');
+        formData.append('fulfillmentProof', compressedFile, fileToUpload.name);
+
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/tickets/${ticketId}/status`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        
+        if (res.status === 401) { sessionStorage.clear(); window.location.href='/'; return; }
+        if (res.ok) {
+          toast.add('Order marked as completed successfully!', 'success');
+          fetchTickets();
+        } else {
+          const errorData = await res.json();
+          toast.add(errorData.error || 'Failed to finish order', 'error');
+          // Revert tab if failed (optional, user can just refresh)
+        }
+      } catch (err) {
+        toast.add('Error uploading confirmation image.', 'error');
       }
-    } catch (err) {
-      toast.add('Error connecting to server', 'error');
-    } finally {
-      isSubmitting = false;
-    }
+    })();
   }
 </script>
 
