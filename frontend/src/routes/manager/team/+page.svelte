@@ -6,6 +6,7 @@
 
   let team: any[] = $state([]);
   let allTickets: any[] = $state([]);
+  let allPayouts: any[] = $state([]);
   let activeTab = $state('ACTIVE');
   let showProfile = $state(false);
   let showAddTeamModal = $state(false);
@@ -13,7 +14,17 @@
   let showStatsModal = $state(false);
   let selectedAgent: any = $state(null);
   let payBonusAmount = $state('');
+  let payoutProofFile: File | null = $state(null);
+  let payoutProofPreview: string = $state('');
   let isPayingBonus = $state(false);
+
+  function handleProofSelect(e: any) {
+    const file = e.target.files[0];
+    if (file) {
+      payoutProofFile = file;
+      payoutProofPreview = URL.createObjectURL(file);
+    }
+  }
 
   let newName = $state('');
   let newEmail = $state('');
@@ -40,6 +51,11 @@
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (resTickets.ok) allTickets = await resTickets.json();
+
+    const resPayouts = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/payouts', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (resPayouts.ok) allPayouts = await resPayouts.json();
   }
 
   onMount(() => { fetchTeamData(); });
@@ -102,19 +118,22 @@
   function openAgentStats(agent: any) {
     selectedAgent = agent;
     payBonusAmount = '';
+    payoutProofFile = null;
+    payoutProofPreview = '';
     showStatsModal = true;
   }
 
   async function payBonusDirect() {
     const amount = parseFloat(payBonusAmount);
     if (!amount || amount <= 0) return toast.add('Enter a valid amount', 'error');
-    const pendingBonus = getAgentStats(selectedAgent).totalRevenue * 0.1 - (selectedAgent._paidBonus || 0);
-    // Use the payout API
+    if (!payoutProofFile) return toast.add('Please upload a transfer screenshot.', 'error');
+
     isPayingBonus = true;
     const token = sessionStorage.getItem('token');
     const formData = new FormData();
     formData.append('agentId', selectedAgent.id);
     formData.append('amount', amount.toString());
+    formData.append('proof', payoutProofFile);
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/payouts/pay`, {
         method: 'POST',
@@ -124,6 +143,8 @@
       if (res.ok) {
         toast.add(`PKR ${amount.toLocaleString()} marked as paid to ${selectedAgent.name}`, 'success');
         payBonusAmount = '';
+        payoutProofFile = null;
+        payoutProofPreview = '';
         fetchTeamData();
       } else {
         const err = await res.json();
@@ -144,7 +165,8 @@
       const completedTickets = submitted.filter(t => t.status === 'COMPLETED');
       const completed = completedTickets.length;
       const totalRevenue = completedTickets.reduce((sum, t) => sum + (t.price || 0), 0);
-      return { total: submitted.length, pending, approved, completed, totalRevenue };
+      const earnedBonus = completedTickets.reduce((sum, t) => sum + (t.bonusAmount || 0), 0);
+      return { total: submitted.length, pending, approved, completed, totalRevenue, earnedBonus };
     } else {
       const assigned = allTickets.filter(t => t.assignedToId === agent.id);
       const pendingWork = assigned.filter(t => t.status === 'APPROVED').length;
@@ -323,7 +345,9 @@
       <div class="p-8 bg-slate-50/50">
         {#if selectedAgent.role === 'SALES'}
           {@const stats = getAgentStats(selectedAgent)}
-          {@const pendingBonus = stats.totalRevenue * 0.1 - (selectedAgent._paidBonus || 0)}
+          {@const agentPayouts = allPayouts.filter(p => p.agentId === selectedAgent.id)}
+          {@const paidBonus = agentPayouts.reduce((sum, p) => sum + p.amount, 0)}
+          {@const pendingBonus = stats.earnedBonus - paidBonus}
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-gradient-to-br from-emerald-500 to-emerald-700 p-5 rounded-2xl shadow-sm text-center col-span-2 text-white">
               <p class="text-xs font-bold uppercase tracking-wide opacity-80 mb-1">Total Generated (Completed)</p>
@@ -365,16 +389,33 @@
             
             <div class="flex justify-between items-end mb-2">
               <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Pay Bonus (PKR)</p>
-              <p class="text-xs font-medium text-slate-500">Suggested: <span class="font-bold text-rose-600">PKR {pendingBonus.toLocaleString()}</span></p>
+              <div class="text-right">
+                <p class="text-xs font-medium text-slate-500">Total Pending: <span class="font-bold text-rose-600">PKR {pendingBonus.toLocaleString()}</span></p>
+                {#if payBonusAmount && !isNaN(parseFloat(payBonusAmount))}
+                  <p class="text-[10px] font-bold text-emerald-600 mt-0.5 border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 rounded">Remaining after: PKR {(pendingBonus - parseFloat(payBonusAmount)).toLocaleString()}</p>
+                {/if}
+              </div>
             </div>
+            
+            <div class="mb-3">
+              <label class="block text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Upload Transfer Screenshot</label>
+              <input type="file" accept="image/*" onchange={handleProofSelect} class="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 transition-all cursor-pointer border border-indigo-200 rounded-xl bg-white" />
+            </div>
+            
+            {#if payoutProofPreview}
+              <div class="mb-3 rounded-xl overflow-hidden border border-indigo-200 shadow-sm relative">
+                <img src={payoutProofPreview} alt="Preview" class="w-full h-32 object-cover">
+              </div>
+            {/if}
+
             <div class="flex gap-2">
-              <input type="number" bind:value={payBonusAmount} placeholder="Enter amount" min="1" class="flex-1 px-4 py-2.5 border border-indigo-300 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm" />
-              <button onclick={payBonusDirect} disabled={isPayingBonus || !payBonusAmount} class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm shadow-indigo-600/30 flex items-center gap-2">
+              <input type="number" bind:value={payBonusAmount} placeholder="Enter amount" min="1" max={pendingBonus > 0 ? pendingBonus : undefined} class="flex-1 px-4 py-2.5 border border-indigo-300 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm" />
+              <button onclick={payBonusDirect} disabled={isPayingBonus || !payBonusAmount || !payoutProofFile} class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm shadow-indigo-600/30 flex items-center gap-2">
                 {#if isPayingBonus}
                   <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                  Processing...
+                  Wait...
                 {:else}
-                  Pay Now
+                  Pay {payBonusAmount ? 'PKR ' + parseFloat(payBonusAmount).toLocaleString() : 'Now'}
                 {/if}
               </button>
             </div>
