@@ -4,6 +4,8 @@
   import imageCompression from 'browser-image-compression';
   import { io, Socket } from 'socket.io-client';
   import { subscribeToPush } from '$lib/utils/push';
+  import BottomNav from '$lib/components/BottomNav.svelte';
+  import ProfileModal from '$lib/components/ProfileModal.svelte';
 
   let messages: any[] = $state([]);
   let users: any[] = $state([]);
