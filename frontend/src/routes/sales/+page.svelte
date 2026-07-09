@@ -43,6 +43,10 @@
   let pendingBonus = $derived(tickets.filter(t => t.status === 'COMPLETED').reduce((sum, t) => sum + (t.bonusAmount || 0), 0) - payouts.reduce((sum, p) => sum + p.amount, 0));
   let paidBonus = $derived(payouts.filter(p => p.status === 'APPROVED').reduce((sum, p) => sum + p.amount, 0));
 
+  let ordersTab = $state('ALL'); // ALL, PENDING, APPROVED, COMPLETED
+  let sortedTickets = $derived(tickets.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  let displayedTickets = $derived(sortedTickets.filter(t => ordersTab === 'ALL' || t.status === ordersTab));
+
   async function fetchData() {
     const token = sessionStorage.getItem('token');
     
@@ -299,11 +303,18 @@
         </div>
 
         {#if activeTab === 'ORDERS'}
+          <div class="flex space-x-4 mb-4 overflow-x-auto pb-2">
+            <button onclick={() => ordersTab = 'ALL'} class={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-colors ${ordersTab === 'ALL' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>All Orders</button>
+            <button onclick={() => ordersTab = 'PENDING'} class={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-colors ${ordersTab === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>Pending</button>
+            <button onclick={() => ordersTab = 'APPROVED'} class={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-colors ${ordersTab === 'APPROVED' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>Approved</button>
+            <button onclick={() => ordersTab = 'COMPLETED'} class={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-colors ${ordersTab === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>Completed</button>
+          </div>
+
           <div class="space-y-4">
-            {#if tickets.length === 0}
-              <div class="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-100 shadow-sm">You haven't submitted any orders yet.</div>
+            {#if displayedTickets.length === 0}
+              <div class="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-100 shadow-sm">No orders found.</div>
             {/if}
-            {#each tickets as ticket}
+            {#each displayedTickets as ticket}
               <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center transition-all border-l-4 {ticket.status === 'COMPLETED' ? 'border-l-emerald-400' : ticket.status === 'APPROVED' ? 'border-l-indigo-400' : 'border-l-amber-400'}">
                 <div>
                   <h3 class="font-bold text-slate-900 text-lg">{ticket.genericData?.name || ticket.transactionId}</h3>
