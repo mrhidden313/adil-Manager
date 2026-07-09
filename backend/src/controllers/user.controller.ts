@@ -39,7 +39,7 @@ export const getMyTeam = async (req: AuthRequest, res: Response): Promise<void> 
     }
     const team = await prisma.user.findMany({
       where: { companyId },
-      select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true, profilePictureUrl: true }
+      select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true, profilePictureUrl: true, paymentAccountType: true, paymentAccountNumber: true }
     });
     res.json(team);
   } catch (error) {
