@@ -97,7 +97,7 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, email: true, role: true, createdAt: true, profilePictureUrl: true, companyId: true, company: { select: { maxPadLimit: true, allowSalesChat: true, requireManagerApproval: true } } }
+      select: { id: true, name: true, email: true, role: true, createdAt: true, profilePictureUrl: true, paymentAccountType: true, paymentAccountNumber: true, companyId: true, company: { select: { maxPadLimit: true, allowSalesChat: true, requireManagerApproval: true } } }
     });
 
     if (!user) {

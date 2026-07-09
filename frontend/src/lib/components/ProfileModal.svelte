@@ -192,8 +192,8 @@
                 </form>
               {:else}
                 <div class="text-center mb-6">
-                  <h2 class="text-2xl font-black text-slate-900">{userProfile.name}</h2>
-                  <p class="text-sm font-medium text-slate-500">{userProfile.email}</p>
+                  <h2 class="text-2xl font-black text-slate-900">{userProfile?.name}</h2>
+                  <p class="text-sm font-medium text-slate-500">{userProfile?.email}</p>
                   <button onclick={() => isEditing = true} class="mt-2 text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider">
                     Edit Profile
                   </button>
@@ -203,25 +203,25 @@
                   <div class="flex justify-between items-center">
                     <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Role</span>
                     <span class={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${
-                      userProfile.role === 'SALES' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                      userProfile.role === 'MANAGER' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                      userProfile?.role === 'SALES' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      userProfile?.role === 'MANAGER' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
                       'bg-purple-50 text-purple-700 border-purple-200'
                     }`}>
-                      {userProfile.role}
+                      {userProfile?.role}
                     </span>
                   </div>
                   <div class="flex justify-between items-center">
                     <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Member Since</span>
                     <span class="text-sm font-bold text-slate-700">
-                      {new Date(userProfile.createdAt).toLocaleDateString()}
+                      {userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
-                  {#if userProfile.paymentAccountType}
+                  {#if userProfile?.paymentAccountType}
                     <div class="flex flex-col pt-2 border-t border-slate-200 mt-2">
                       <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Payment Details</span>
                       <div class="flex justify-between items-center">
-                        <span class="text-sm font-bold text-slate-700">{userProfile.paymentAccountType}</span>
-                        <span class="text-sm font-mono bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">{userProfile.paymentAccountNumber}</span>
+                        <span class="text-sm font-bold text-slate-700">{userProfile?.paymentAccountType}</span>
+                        <span class="text-sm font-mono bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded">{userProfile?.paymentAccountNumber}</span>
                       </div>
                     </div>
                   {/if}
