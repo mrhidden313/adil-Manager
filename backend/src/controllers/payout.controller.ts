@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const createPayout = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { agentId } = req.body;
+    const { agentId, amount } = req.body;
     const companyId = req.user?.companyId;
     const role = req.user?.role;
     const file = req.file;
@@ -16,27 +16,16 @@ export const createPayout = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
-    if (!agentId || !file) {
-      res.status(400).json({ error: 'Agent ID and Payment Proof image are required' });
+    if (!agentId || !file || !amount) {
+      res.status(400).json({ error: 'Agent ID, Amount, and Payment Proof image are required' });
       return;
     }
 
-    // Find all pending bonus tickets for this agent
-    const pendingTickets = await prisma.ticket.findMany({
-      where: {
-        createdById: agentId,
-        companyId,
-        bonusStatus: 'PENDING',
-        status: 'COMPLETED' // Assuming bonus is only paid on COMPLETED tickets
-      }
-    });
-
-    if (pendingTickets.length === 0) {
-      res.status(400).json({ error: 'No completed tickets with pending bonuses found for this agent' });
+    const paymentAmount = parseFloat(amount);
+    if (isNaN(paymentAmount) || paymentAmount <= 0) {
+      res.status(400).json({ error: 'Invalid payout amount' });
       return;
     }
-
-    const totalBonusAmount = pendingTickets.reduce((sum, t) => sum + t.bonusAmount, 0);
 
     // Upload proof image
     const fileExt = file.originalname.split('.').pop();
@@ -56,30 +45,15 @@ export const createPayout = async (req: AuthRequest, res: Response): Promise<voi
 
     const { data: { publicUrl } } = supabase.storage.from('proofs').getPublicUrl(fileName);
 
-    // Create payout and update tickets in a transaction
-    const payout = await prisma.$transaction(async (tx) => {
-      const newPayout = await tx.payout.create({
-        data: {
-          companyId,
-          agentId,
-          amount: totalBonusAmount,
-          proofUrl: publicUrl,
-          status: 'PENDING' // Pending agent approval
-        }
-      });
-
-      // Update tickets to link to payout and mark as PAID
-      await tx.ticket.updateMany({
-        where: {
-          id: { in: pendingTickets.map(t => t.id) }
-        },
-        data: {
-          bonusStatus: 'PAID',
-          payoutId: newPayout.id
-        }
-      });
-
-      return newPayout;
+    // Create payout
+    const payout = await prisma.payout.create({
+      data: {
+        companyId,
+        agentId,
+        amount: paymentAmount,
+        proofUrl: publicUrl,
+        status: 'PENDING' // Pending agent approval
+      }
     });
 
     // Notify agent
@@ -88,7 +62,7 @@ export const createPayout = async (req: AuthRequest, res: Response): Promise<voi
         companyId,
         userId: agentId,
         title: 'New Payout Received',
-        message: `Your manager has sent a payout of $${totalBonusAmount.toFixed(2)}. Please review and approve.`
+        message: `Your manager has sent a payout of PKR ${paymentAmount.toLocaleString()}. Please review and approve in your dashboard.`
       }
     });
 

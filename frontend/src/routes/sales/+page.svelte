@@ -40,7 +40,7 @@
   let activeTickets = $derived(tickets.filter(t => t.status !== 'REJECTED'));
   let totalSales = $derived(activeTickets.reduce((sum, t) => sum + (t.price || 0), 0));
   let totalTickets = $derived(activeTickets.length);
-  let pendingBonus = $derived(tickets.filter(t => t.bonusStatus === 'PENDING' && t.status === 'COMPLETED').reduce((sum, t) => sum + (t.bonusAmount || 0), 0));
+  let pendingBonus = $derived(tickets.filter(t => t.status === 'COMPLETED').reduce((sum, t) => sum + (t.bonusAmount || 0), 0) - payouts.reduce((sum, p) => sum + p.amount, 0));
   let paidBonus = $derived(payouts.filter(p => p.status === 'APPROVED').reduce((sum, p) => sum + p.amount, 0));
 
   async function fetchData() {
