@@ -257,46 +257,47 @@
     </header>
 
     <!-- Page Content -->
-    <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50">
+    <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
       <div class="max-w-6xl mx-auto space-y-6">
         
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 animate-stagger" style="animation-delay: 100ms;">
           <div>
-            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Welcome back!</h1>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Welcome back!</h1>
           </div>
-          <button onclick={() => showModal = true} class="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-lg shadow-sm shadow-indigo-600/20 transition-all focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none">
+          <button onclick={() => showModal = true} class="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-2xl shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5 transition-all focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
             <span>Submit New Order</span>
           </button>
         </div>
 
         <!-- Top Stats -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full"></div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 animate-stagger" style="animation-delay: 200ms;">
+          <div class="glass-panel p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+            <div class="absolute right-0 top-0 w-24 h-24 bg-emerald-500/10 rounded-bl-full group-hover:scale-110 transition-transform"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Sales</p>
             <p class="text-3xl font-black text-slate-900">PKR {totalSales.toLocaleString()}</p>
             <p class="text-xs text-emerald-600 font-bold mt-2">{totalOrders} Orders</p>
           </div>
 
-          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/5 rounded-bl-full"></div>
+          <div class="glass-panel p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+            <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/10 rounded-bl-full group-hover:scale-110 transition-transform"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Tickets</p>
             <p class="text-3xl font-black text-blue-600">{totalTickets}</p>
           </div>
           
-          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-amber-500/5 rounded-bl-full"></div>
+          <div class="glass-panel p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+            <div class="absolute right-0 top-0 w-24 h-24 bg-amber-500/10 rounded-bl-full group-hover:scale-110 transition-transform"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pending Bonus (10%)</p>
             <p class="text-3xl font-black text-amber-600">PKR {pendingBonus.toLocaleString()}</p>
           </div>
           
-          <div class="bg-gradient-to-br from-indigo-600 to-purple-700 p-5 rounded-2xl shadow-md border border-indigo-500 text-white relative overflow-hidden flex flex-col justify-between">
-            <div>
+          <div class="bg-gradient-to-br from-indigo-600 to-purple-700 p-5 rounded-2xl shadow-lg shadow-indigo-500/20 border border-indigo-500/50 text-white relative overflow-hidden flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300">
+            <div class="absolute right-[-20%] top-[-20%] w-32 h-32 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
+            <div class="relative z-10">
               <p class="text-xs font-bold text-indigo-200 uppercase tracking-wider mb-1">Total Paid Bonus</p>
               <p class="text-3xl font-black">PKR {paidBonus.toLocaleString()}</p>
             </div>
-            <p class="text-xs text-indigo-100 font-medium mt-2">Total cash received</p>
+            <p class="text-xs text-indigo-100 font-medium mt-2 relative z-10">Total cash received</p>
           </div>
         </div>
 
@@ -317,20 +318,21 @@
         </div>
 
         {#if activeTab === 'ORDERS'}
-          <div class="flex space-x-4 mb-4 overflow-x-auto pb-2">
-            <button onclick={() => ordersTab = 'ALL'} class={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-colors ${ordersTab === 'ALL' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>All Orders</button>
-            <button onclick={() => ordersTab = 'PENDING'} class={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-colors ${ordersTab === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>Pending</button>
-            <button onclick={() => ordersTab = 'APPROVED'} class={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-colors ${ordersTab === 'APPROVED' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>Approved</button>
-            <button onclick={() => ordersTab = 'COMPLETED'} class={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-colors ${ordersTab === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>Completed</button>
+          <div class="flex space-x-4 mb-4 overflow-x-auto pb-2 animate-stagger" style="animation-delay: 300ms;">
+            <button onclick={() => ordersTab = 'ALL'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'ALL' ? 'bg-slate-800 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>All</button>
+            <button onclick={() => ordersTab = 'PENDING'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'PENDING' ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Pending</button>
+            <button onclick={() => ordersTab = 'APPROVED'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'APPROVED' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Approved</button>
+            <button onclick={() => ordersTab = 'COMPLETED'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'COMPLETED' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Completed</button>
           </div>
 
           <div class="space-y-4">
             {#if displayedTickets.length === 0}
               <div class="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-100 shadow-sm">No orders found.</div>
             {/if}
-            {#each displayedTickets as ticket}
-              <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center transition-all border-l-4 {ticket.status === 'COMPLETED' ? 'border-l-emerald-400' : ticket.status === 'APPROVED' ? 'border-l-indigo-400' : 'border-l-amber-400'}">
-                <div>
+            {#each displayedTickets as ticket, index}
+              <div class="glass-card p-5 sm:p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4 relative overflow-hidden group hover:shadow-lg transition-all animate-stagger" style={`animation-delay: ${400 + (index * 50)}ms;`}>
+                <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b {ticket.status === 'COMPLETED' ? 'from-emerald-400 to-emerald-600' : ticket.status === 'APPROVED' ? 'from-indigo-400 to-indigo-600' : 'from-amber-400 to-amber-600'}"></div>
+                <div class="flex-1 pl-4">
                   <h3 class="font-bold text-slate-900 text-lg">{ticket.genericData?.name || ticket.transactionId}</h3>
                   <div class="flex items-center space-x-3 mt-1">
                     <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-xs font-bold border border-emerald-100">
@@ -359,8 +361,8 @@
             {#if payouts.length === 0}
               <div class="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-100 shadow-sm">No payouts yet.</div>
             {/if}
-            {#each payouts as payout}
-              <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            {#each payouts as payout, index}
+              <div class="glass-card p-5 sm:p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4 relative overflow-hidden group hover:shadow-lg transition-all animate-stagger" style={`animation-delay: ${400 + (index * 50)}ms;`}>
                 <div>
                   <p class="font-black text-slate-900 text-2xl">PKR {payout.amount.toFixed(2)}</p>
                   <p class="text-xs text-slate-500 mt-1">{new Date(payout.createdAt).toLocaleString()}</p>

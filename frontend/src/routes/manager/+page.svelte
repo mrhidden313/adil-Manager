@@ -271,37 +271,39 @@
     </header>
 
     <!-- Page Content -->
-    <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50">
+    <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
       <div class="max-w-6xl mx-auto space-y-6">
         
         <!-- Top Cinematic Stats -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-indigo-500/5 rounded-bl-full"></div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 animate-stagger" style="animation-delay: 100ms;">
+          <div class="glass-panel p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+            <div class="absolute right-0 top-0 w-24 h-24 bg-indigo-500/10 rounded-bl-full group-hover:scale-110 transition-transform"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Generated</p>
             <p class="text-3xl font-black text-slate-900">PKR {totalAmount.toLocaleString()}</p>
             <p class="text-xs text-indigo-600 font-bold mt-2">{totalOrders} Orders</p>
           </div>
 
-          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/5 rounded-bl-full"></div>
+          <div class="glass-panel p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+            <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/10 rounded-bl-full group-hover:scale-110 transition-transform"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Tickets</p>
             <p class="text-3xl font-black text-blue-600">{totalTickets}</p>
             <p class="text-xs text-slate-500 font-medium mt-2">Tickets sold</p>
           </div>
           
-          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-rose-500/5 rounded-bl-full"></div>
+          <div class="glass-panel p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+            <div class="absolute right-0 top-0 w-24 h-24 bg-rose-500/10 rounded-bl-full group-hover:scale-110 transition-transform"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pending Bonus</p>
             <p class="text-3xl font-black text-rose-600">PKR {totalBonusPending.toLocaleString()}</p>
             <p class="text-xs text-slate-500 font-medium mt-2">To be paid to agents</p>
           </div>
           
-          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full"></div>
-            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Paid Bonus</p>
-            <p class="text-3xl font-black text-emerald-600">PKR {totalBonusPaid.toLocaleString()}</p>
-            <p class="text-xs text-slate-500 font-medium mt-2">Total payouts processed</p>
+          <div class="bg-gradient-to-br from-emerald-500 to-teal-700 p-5 rounded-2xl shadow-lg shadow-emerald-500/20 border border-emerald-500/50 text-white relative overflow-hidden flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300">
+            <div class="absolute right-[-20%] top-[-20%] w-32 h-32 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
+            <div class="relative z-10">
+              <p class="text-xs font-bold text-emerald-100 uppercase tracking-wider mb-1">Total Paid Bonus</p>
+              <p class="text-3xl font-black">PKR {totalBonusPaid.toLocaleString()}</p>
+            </div>
+            <p class="text-xs text-emerald-100 font-medium mt-2">Total payouts processed</p>
           </div>
         </div>
 
@@ -309,7 +311,7 @@
         <div class="border-b border-slate-200 mt-8 mb-4">
           <nav class="-mb-px flex space-x-8" aria-label="Tabs">
             <button onclick={() => activeTab = 'ORDERS'} class={`whitespace-nowrap py-4 px-1 border-b-2 font-semibold text-sm ${activeTab === 'ORDERS' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'} transition-colors`}>
-              Review Orders
+              Agent Orders
             </button>
             <button onclick={() => activeTab = 'PAYOUTS'} class={`whitespace-nowrap py-4 px-1 border-b-2 font-semibold text-sm flex items-center gap-2 ${activeTab === 'PAYOUTS' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'} transition-colors`}>
               Agent Payouts
@@ -321,21 +323,20 @@
         </div>
 
         {#if activeTab === 'ORDERS'}
-          <div class="flex space-x-4 mb-4">
-            <button onclick={() => ordersTab = 'PENDING'} class={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${ordersTab === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>Pending Approval</button>
-            <button onclick={() => ordersTab = 'APPROVED'} class={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${ordersTab === 'APPROVED' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>Approved</button>
-            <button onclick={() => ordersTab = 'COMPLETED'} class={`px-4 py-2 rounded-xl text-xs font-bold transition-colors ${ordersTab === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>Completed</button>
+          <div class="flex space-x-4 mb-4 overflow-x-auto pb-2 animate-stagger" style="animation-delay: 200ms;">
+            <button onclick={() => ordersTab = 'PENDING'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'PENDING' ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Pending Approval</button>
+            <button onclick={() => ordersTab = 'APPROVED'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'APPROVED' ? 'bg-indigo-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Approved</button>
+            <button onclick={() => ordersTab = 'COMPLETED'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'COMPLETED' ? 'bg-emerald-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Completed</button>
           </div>
 
           <div class="space-y-4">
             {#if filteredTickets.length === 0}
               <div class="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-100 shadow-sm">No orders found in this status.</div>
             {/if}
-            {#each filteredTickets as ticket}
-              <!-- svelte-ignore a11y_click_events_have_key_events -->
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center cursor-pointer hover:shadow-md hover:border-slate-300 transition-all" onclick={() => openTicket(ticket)}>
-                <div>
+            {#each filteredTickets as ticket, index}
+              <div class="glass-card p-5 sm:p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4 relative overflow-hidden group hover:shadow-lg transition-all cursor-pointer animate-stagger" style={`animation-delay: ${300 + (index * 50)}ms;`} onclick={() => openTicket(ticket)}>
+                <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b {ticket.status === 'COMPLETED' ? 'from-emerald-400 to-emerald-600' : ticket.status === 'APPROVED' ? 'from-indigo-400 to-indigo-600' : ticket.status === 'REJECTED' ? 'from-rose-400 to-rose-600' : 'from-amber-400 to-amber-600'}"></div>
+                <div class="flex-1 pl-4">
                   <div class="flex items-center space-x-3 mb-2 flex-wrap gap-y-2">
                     <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-slate-50 text-slate-700 border-slate-200">{ticket.status}</span>
                     <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-emerald-50 text-emerald-700 border-emerald-200">PKR {ticket.price}</span>
@@ -355,7 +356,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             {#each salesAgents as agent}
               {@const pending = agentPendingBonuses.get(agent.id) || 0}
-              <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center sm:justify-between gap-4">
+              <div class="glass-card p-6 flex flex-col sm:flex-row items-center sm:justify-between gap-4">
                 <div class="flex items-center gap-4 text-center sm:text-left">
                   <div class="w-12 h-12 bg-indigo-100 text-indigo-700 font-bold rounded-full flex items-center justify-center text-xl">{agent.name.charAt(0)}</div>
                   <div>
@@ -387,8 +388,8 @@
             {#if payouts.length === 0}
               <div class="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-100 shadow-sm">No payout history.</div>
             {/if}
-            {#each payouts as payout}
-              <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+            {#each payouts as payout, index}
+              <div class="glass-card p-5 sm:p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4 relative overflow-hidden group hover:shadow-lg transition-all animate-stagger" style={`animation-delay: ${300 + (index * 50)}ms;`}>
                 <div>
                   <p class="font-bold text-slate-900">Paid to {payout.agent?.name}</p>
                   <p class="text-xs text-slate-500">{new Date(payout.createdAt).toLocaleString()}</p>

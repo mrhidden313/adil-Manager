@@ -2,6 +2,8 @@
   import '../app.css';
   import Toast from '$lib/components/Toast.svelte';
   import { onMount } from 'svelte';
+  import { page } from '$app/stores';
+  import { fade } from 'svelte/transition';
 
   onMount(async () => {
     // Only register Service Worker if supported
@@ -17,4 +19,8 @@
 </script>
 
 <Toast />
-<slot />
+{#key $page.url.pathname}
+  <div in:fade={{ duration: 250, delay: 50 }}>
+    <slot />
+  </div>
+{/key}
