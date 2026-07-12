@@ -167,7 +167,7 @@
   }
 </script>
 
-<div class="flex h-screen bg-slate-50 text-slate-800 font-sans pb-16 md:pb-0">
+<div class="flex h-screen bg-transparent text-slate-800 font-sans pb-16 md:pb-0">
   
   <!-- Sidebar -->
   <aside class="w-64 bg-slate-900 text-slate-300 flex-col hidden md:flex shadow-2xl z-10">
@@ -257,7 +257,7 @@
     </header>
 
     <!-- Page Content -->
-    <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
+    <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-transparent">
       <div class="max-w-6xl mx-auto space-y-6">
         
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 animate-stagger" style="animation-delay: 100ms;">

@@ -154,7 +154,7 @@
   }
 </script>
 
-<div class="flex h-screen bg-slate-50 text-slate-800 font-sans">
+<div class="flex h-screen bg-transparent text-slate-800 font-sans">
   
   <!-- Sidebar -->
   <aside class="w-64 bg-slate-900 text-slate-300 flex-col hidden md:flex shadow-2xl z-10">

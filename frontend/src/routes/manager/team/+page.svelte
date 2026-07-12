@@ -183,7 +183,7 @@
   }
 </script>
 
-<div class="flex h-screen bg-slate-50 text-slate-800 font-sans">
+<div class="flex h-screen bg-transparent text-slate-800 font-sans">
   
   <!-- Sidebar -->
   <aside class="w-64 bg-slate-900 text-slate-300 flex-col hidden md:flex shadow-2xl z-10">
@@ -240,7 +240,7 @@
       </div>
     </header>
 
-    <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50">
+    <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-transparent">
       <div class="max-w-7xl mx-auto">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
@@ -349,7 +349,7 @@
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
-      <div class="p-8 bg-slate-50/50">
+      <div class="p-8 bg-transparent">
         {#if selectedAgent.role === 'SALES'}
           {@const stats = getAgentStats(selectedAgent)}
           {@const agentPayouts = allPayouts.filter(p => p.agentId === selectedAgent.id)}
@@ -523,7 +523,7 @@
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
-      <div class="p-8 overflow-y-auto bg-slate-50/50">
+      <div class="p-8 overflow-y-auto bg-transparent">
         <form onsubmit={handleAddTeamMember} class="space-y-5">
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Full Name</label>
