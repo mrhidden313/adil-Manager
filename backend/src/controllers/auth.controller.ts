@@ -33,7 +33,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const token = jwt.sign(
       { id: user.id, role: user.role, companyId: user.companyId },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '100y' }
     );
 
     res.json({
@@ -196,7 +196,7 @@ export const impersonate = async (req: Request, res: Response): Promise<void> =>
     }
 
     const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_development';
-    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '100y' });
 
     res.json({ token, message: companyId ? 'Impersonating company' : 'Returned to admin mode' });
   } catch (error) {

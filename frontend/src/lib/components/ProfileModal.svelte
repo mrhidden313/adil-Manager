@@ -226,6 +226,13 @@
                     </div>
                   {/if}
                 </div>
+
+                <div class="mt-6 pt-4 border-t border-slate-100 text-center">
+                  <button onclick={() => { sessionStorage.clear(); window.location.href='/'; }} class="w-full text-sm font-bold text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-6 py-3 rounded-xl transition-colors inline-flex justify-center items-center space-x-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    <span>Sign Out</span>
+                  </button>
+                </div>
               {/if}
             {:else}
               <div class="text-center text-rose-500 font-bold p-4 bg-rose-50 rounded-xl">
