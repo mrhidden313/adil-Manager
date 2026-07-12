@@ -263,7 +263,6 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div>
             <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Welcome back!</h1>
-            <p class="text-slate-500 mt-1 text-sm">Track your performance and submit new orders.</p>
           </div>
           <button onclick={() => showModal = true} class="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-lg shadow-sm shadow-indigo-600/20 transition-all focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
@@ -284,14 +283,12 @@
             <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/5 rounded-bl-full"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Tickets</p>
             <p class="text-3xl font-black text-blue-600">{totalTickets}</p>
-            <p class="text-xs text-slate-500 font-medium mt-2">Tickets sold</p>
           </div>
           
           <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
             <div class="absolute right-0 top-0 w-24 h-24 bg-amber-500/5 rounded-bl-full"></div>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pending Bonus (10%)</p>
             <p class="text-3xl font-black text-amber-600">PKR {pendingBonus.toLocaleString()}</p>
-            <p class="text-xs text-slate-500 font-medium mt-2">Waiting for Manager to pay</p>
           </div>
           
           <div class="bg-gradient-to-br from-indigo-600 to-purple-700 p-5 rounded-2xl shadow-md border border-indigo-500 text-white relative overflow-hidden flex flex-col justify-between">
