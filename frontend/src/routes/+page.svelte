@@ -10,6 +10,22 @@
   // For intro animation
   let mounted = $state(false);
   onMount(() => {
+    // Auto-login check
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user.role === 'SUPER_ADMIN') window.location.href = '/admin';
+        else if (user.role === 'SALES') window.location.href = '/sales';
+        else if (user.role === 'MANAGER') window.location.href = '/manager';
+        else if (user.role === 'FULFILLMENT') window.location.href = '/fulfillment';
+        return;
+      } catch (e) {
+        localStorage.clear();
+      }
+    }
+
     setTimeout(() => { mounted = true; }, 100);
   });
 
