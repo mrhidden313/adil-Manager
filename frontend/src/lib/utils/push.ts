@@ -10,7 +10,7 @@ export async function subscribeToPush() {
     const registration = await navigator.serviceWorker.ready;
     
     // Get VAPID public key from backend
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     const vapidRes = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/push/vapid-public-key', {
       headers: { 'Authorization': `Bearer ${token}` }
     });

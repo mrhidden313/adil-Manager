@@ -29,11 +29,11 @@
   });
 
   async function fetchAdminData() {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/companies', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (res.status === 401) { sessionStorage.clear(); window.location.href='/'; return; }
+    if (res.status === 401) { localStorage.clear(); window.location.href='/'; return; }
     if (res.ok) {
       companies = await res.json();
     }
@@ -56,7 +56,7 @@
 
   
   async function manageCompany(companyId: string) {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/auth/impersonate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -64,7 +64,7 @@
     });
     if (res.ok) {
       const data = await res.json();
-      sessionStorage.setItem('token', data.token);
+      localStorage.setItem('token', data.token);
       window.location.href = '/manager';
     } else {
       toast.add('Failed to enter company mode', 'error');
@@ -74,7 +74,7 @@
   async function handleAddCompany(e: Event) {
     e.preventDefault();
     isCreating = true;
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     
     try {
       const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/companies', {
@@ -86,7 +86,7 @@
         body: JSON.stringify({ companyName, managerName, managerEmail, managerPassword })
       });
       
-      if (res.status === 401) { sessionStorage.clear(); window.location.href='/'; return; }
+      if (res.status === 401) { localStorage.clear(); window.location.href='/'; return; }
     if (res.ok) {
         showAddCompanyModal = false;
         companyName = ''; managerName = ''; managerEmail = ''; managerPassword = '';
@@ -107,7 +107,7 @@
     const newStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
     if (!confirm(`Are you sure you want to change status to ${newStatus}?`)) return;
     
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/companies/${companyId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -119,7 +119,7 @@
   async function deleteCompany(companyId: string, companyName: string) {
     if (!confirm(`WARNING: Are you sure you want to delete agency "${companyName}"? Managers and users will lose access immediately.`)) return;
     
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/companies/${companyId}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
@@ -133,11 +133,11 @@
 
   async function viewUsers(comp: any) {
     selectedCompanyName = comp.name;
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/companies/${comp.id}/users`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (res.status === 401) { sessionStorage.clear(); window.location.href='/'; return; }
+    if (res.status === 401) { localStorage.clear(); window.location.href='/'; return; }
     if (res.ok) {
       selectedCompanyUsers = await res.json();
       showUsersModal = true;
@@ -180,7 +180,7 @@
       </button>
     </div>
     <div class="p-4 border-t border-slate-800">
-      <button onclick={() => { sessionStorage.clear(); window.location.href = '/'; }} class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-400 hover:text-white px-3 py-2.5 rounded-lg font-medium transition-colors">
+      <button onclick={() => { localStorage.clear(); window.location.href = '/'; }} class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-400 hover:text-white px-3 py-2.5 rounded-lg font-medium transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         <span>Sign Out</span>
       </button>
@@ -204,7 +204,7 @@
         <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200 cursor-pointer" onclick={() => showProfile = true}>
           S
         </div>
-        <button onclick={() => { sessionStorage.clear(); window.location.href = '/'; }} class="md:hidden text-slate-500 hover:text-slate-900">
+        <button onclick={() => { localStorage.clear(); window.location.href = '/'; }} class="md:hidden text-slate-500 hover:text-slate-900">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         </button>
       </div>

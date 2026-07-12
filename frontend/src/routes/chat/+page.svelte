@@ -33,7 +33,7 @@
   });
 
   async function fetchInitialData() {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     if (!token) return window.location.href = '/';
 
     try {
@@ -80,7 +80,7 @@
   }
 
   async function fetchMessages() {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     if (!token) return;
     
     try {
@@ -88,7 +88,7 @@
       const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (res.status === 401) { sessionStorage.clear(); window.location.href='/'; return; }
+      if (res.status === 401) { localStorage.clear(); window.location.href='/'; return; }
     if (res.ok) {
         const data = await res.json();
         // Since we fetch 100 recent messages, we just replace them.
@@ -156,7 +156,7 @@
       if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }, 10);
 
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     
     try {
       const formData = new FormData();
@@ -179,7 +179,7 @@
         body: formData
       });
 
-      if (res.status === 401) { sessionStorage.clear(); window.location.href='/'; return; }
+      if (res.status === 401) { localStorage.clear(); window.location.href='/'; return; }
       if (res.ok) {
         fetchMessages();
       } else {

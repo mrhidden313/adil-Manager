@@ -6,7 +6,7 @@
   let currentPath = $derived($page.url.pathname);
 
   async function returnToAdmin() {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/auth/impersonate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -14,7 +14,7 @@
     });
     if (res.ok) {
       const data = await res.json();
-      sessionStorage.setItem('token', data.token);
+      localStorage.setItem('token', data.token);
       window.location.href = '/admin';
     }
   }
@@ -55,7 +55,7 @@
     </button>
   {/if}
 
-  {#if role !== 'SALES' || window.location.pathname === '/chat' || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('allowSalesChat') !== 'false')}
+  {#if role !== 'SALES' || window.location.pathname === '/chat' || (typeof localStorage !== 'undefined' && localStorage.getItem('allowSalesChat') !== 'false')}
   <button onclick={() => window.location.href = '/chat'} class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-indigo-600 {currentPath === '/chat' ? 'text-indigo-600' : ''}">
     <svg class="w-6 h-6 mb-1 {currentPath === '/chat' ? 'text-indigo-600' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
     <span class="text-[10px] font-bold">Chat</span>

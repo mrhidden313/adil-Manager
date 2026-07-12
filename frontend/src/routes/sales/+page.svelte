@@ -49,7 +49,7 @@
   let displayedTickets = $derived(sortedTickets.filter(t => ordersTab === 'ALL' || t.status === ordersTab));
 
   async function fetchData() {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     
     const [resTickets, resPayouts, resNotif] = await Promise.all([
       fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', { headers: { 'Authorization': `Bearer ${token}` } }),
@@ -57,7 +57,7 @@
       fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/notifications', { headers: { 'Authorization': `Bearer ${token}` } })
     ]);
 
-    if (resTickets.status === 401) { sessionStorage.clear(); window.location.href='/'; return; }
+    if (resTickets.status === 401) { localStorage.clear(); window.location.href='/'; return; }
     
     if (resTickets.ok) tickets = await resTickets.json();
     if (resPayouts.ok) payouts = await resPayouts.json();
@@ -79,7 +79,7 @@
     if (!proofFile || proofFile.length === 0) return toast.add('Please attach payment proof.', 'error');
     if (!customerName || !amount || parseFloat(amount) <= 0) return toast.add('Please provide valid customer name and amount.', 'error');
 
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     
     // Capture form values before clearing
     const fileToUpload = proofFile[0];
@@ -140,7 +140,7 @@
   }
 
   async function approvePayout(payoutId: string) {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/payouts/${payoutId}/approve`, {
         method: 'PATCH',
@@ -158,7 +158,7 @@
   }
 
   async function markNotificationAsRead(id: string) {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/notifications/${id}/read`, {
       method: 'PATCH',
       headers: { 'Authorization': `Bearer ${token}` }
@@ -193,7 +193,7 @@
       </button>
     </div>
     <div class="p-4 border-t border-slate-800">
-      <button onclick={() => { sessionStorage.clear(); window.location.href = '/'; }} class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-400 hover:text-white px-3 py-2.5 rounded-lg font-medium transition-colors">
+      <button onclick={() => { localStorage.clear(); window.location.href = '/'; }} class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-400 hover:text-white px-3 py-2.5 rounded-lg font-medium transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         <span>Sign Out</span>
       </button>

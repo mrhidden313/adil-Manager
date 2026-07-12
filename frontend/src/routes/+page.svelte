@@ -31,8 +31,8 @@
         return;
       }
       
-      sessionStorage.setItem('token', data.token);
-      sessionStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
       
       // Redirect based on role
       if (data.user.role === 'SUPER_ADMIN') {

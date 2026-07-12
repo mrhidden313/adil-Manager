@@ -9,7 +9,7 @@
 
   async function loadSettings() {
     try {
-      const token = sessionStorage.getItem('token');
+      const token = localStorage.getItem('token');
       const meRes = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
       if (meRes.ok) {
         currentUser = await meRes.json();
@@ -34,7 +34,7 @@
     e.preventDefault();
     isSaving = true;
     try {
-      const token = sessionStorage.getItem('token');
+      const token = localStorage.getItem('token');
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/companies/${currentUser.companyId}/settings`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },

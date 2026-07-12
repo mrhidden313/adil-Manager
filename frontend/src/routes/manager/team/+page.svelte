@@ -41,7 +41,7 @@
   });
 
   async function fetchTeamData() {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/users/team', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -63,7 +63,7 @@
   async function handleAddTeamMember(e: Event) {
     e.preventDefault();
     isCreating = true;
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     try {
       const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/users/team', {
         method: 'POST',
@@ -90,7 +90,7 @@
     if (e) e.stopPropagation();
     const newStatus = !currentStatus;
     if (!confirm(`Are you sure you want to ${newStatus ? 'activate' : 'disable'} this agent?`)) return;
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/users/team/${userId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -102,7 +102,7 @@
   async function deleteTeamMember(userId: string, userName: string, e?: Event) {
     if (e) e.stopPropagation();
     if (!confirm(`WARNING: Are you sure you want to permanently delete agent "${userName}"? This cannot be undone.`)) return;
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/users/team/${userId}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
@@ -129,7 +129,7 @@
     if (!payoutProofFile) return toast.add('Please upload a transfer screenshot.', 'error');
 
     isPayingBonus = true;
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     const formData = new FormData();
     formData.append('agentId', selectedAgent.id);
     formData.append('amount', amount.toString());
@@ -208,7 +208,7 @@
       </button>
     </div>
     <div class="p-4 border-t border-slate-800">
-      <button onclick={() => { sessionStorage.clear(); window.location.href = '/'; }} class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-400 hover:text-white px-3 py-2.5 rounded-lg font-medium transition-colors">
+      <button onclick={() => { localStorage.clear(); window.location.href = '/'; }} class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-400 hover:text-white px-3 py-2.5 rounded-lg font-medium transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         <span>Sign Out</span>
       </button>
