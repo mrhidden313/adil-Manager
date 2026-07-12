@@ -371,14 +371,14 @@
             <div class="grid grid-cols-2 gap-3">
 
               <!-- Total Orders -->
-              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1)); border: 1px solid rgba(99,102,241,0.2);">
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1)); border: 1px solid rgba(99,102,241,0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
                 <div class="absolute right-[-8px] top-[-8px] w-14 h-14 bg-indigo-400/20 rounded-full blur-md"></div>
                 <p class="text-2xl font-black text-indigo-700 relative z-10">{stats.total}</p>
                 <p class="text-[10px] font-bold text-indigo-500 uppercase tracking-wide">Total Orders</p>
               </div>
 
               <!-- Total Tickets (SUM) -->
-              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(6,182,212,0.1), rgba(59,130,246,0.1)); border: 1px solid rgba(6,182,212,0.2);">
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(6,182,212,0.1), rgba(59,130,246,0.1)); border: 1px solid rgba(6,182,212,0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
                 <div class="absolute right-[-8px] top-[-8px] w-14 h-14 bg-cyan-400/20 rounded-full blur-md"></div>
                 <p class="text-2xl font-black text-cyan-700 relative z-10">{stats.totalTickets}</p>
                 <p class="text-[10px] font-bold text-cyan-600 uppercase tracking-wide">Total Tickets</p>
@@ -392,20 +392,20 @@
               </div>
 
               <!-- Confirmed Tickets (SUM) -->
-              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(52,211,153,0.15)); border: 1px solid rgba(16,185,129,0.3);">
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(52,211,153,0.15)); border: 1px solid rgba(16,185,129,0.3); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
                 <div class="absolute right-[-8px] top-[-8px] w-14 h-14 bg-emerald-400/30 rounded-full blur-md"></div>
                 <p class="text-2xl font-black text-emerald-800 relative z-10">{stats.completedTicketsCount}</p>
                 <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">Confirmed Tickets</p>
               </div>
 
               <!-- Pending -->
-              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(251,191,36,0.1)); border: 1px solid rgba(245,158,11,0.2);">
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(251,191,36,0.1)); border: 1px solid rgba(245,158,11,0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
                 <p class="text-2xl font-black text-amber-700">{stats.pending}</p>
                 <p class="text-[10px] font-bold text-amber-600 uppercase tracking-wide">Pending</p>
               </div>
 
               <!-- Approved -->
-              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1)); border: 1px solid rgba(99,102,241,0.2);">
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1)); border: 1px solid rgba(99,102,241,0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
                 <p class="text-2xl font-black text-indigo-700">{stats.approved}</p>
                 <p class="text-[10px] font-bold text-indigo-600 uppercase tracking-wide">Approved</p>
               </div>
@@ -476,14 +476,14 @@
             <div class="grid grid-cols-2 gap-3">
 
               <!-- Total Assigned Orders -->
-              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1)); border: 1px solid rgba(99,102,241,0.2);">
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1)); border: 1px solid rgba(99,102,241,0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
                 <div class="absolute right-[-8px] top-[-8px] w-14 h-14 bg-indigo-400/20 rounded-full blur-md"></div>
                 <p class="text-2xl font-black text-indigo-700 relative z-10">{stats.total}</p>
                 <p class="text-[10px] font-bold text-indigo-500 uppercase tracking-wide">Total Assigned Orders</p>
               </div>
 
               <!-- Total Tickets (ALL) -->
-              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(6,182,212,0.1), rgba(59,130,246,0.1)); border: 1px solid rgba(6,182,212,0.2);">
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(6,182,212,0.1), rgba(59,130,246,0.1)); border: 1px solid rgba(6,182,212,0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
                 <div class="absolute right-[-8px] top-[-8px] w-14 h-14 bg-cyan-400/20 rounded-full blur-md"></div>
                 <p class="text-2xl font-black text-cyan-700 relative z-10">{stats.totalTickets}</p>
                 <p class="text-[10px] font-bold text-cyan-600 uppercase tracking-wide">Total Tickets (All)</p>
@@ -496,7 +496,7 @@
               </div>
 
               <!-- Work Pending -->
-              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(251,191,36,0.1)); border: 1px solid rgba(245,158,11,0.2);">
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(251,191,36,0.1)); border: 1px solid rgba(245,158,11,0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
                 <p class="text-2xl font-black text-amber-700">{stats.pendingWork}</p>
                 <p class="text-[10px] font-bold text-amber-600 uppercase tracking-wide">Work Pending</p>
               </div>

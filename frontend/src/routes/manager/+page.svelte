@@ -277,7 +277,7 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 animate-stagger" style="animation-delay: 100ms;">
 
           <!-- Total Generated -->
-          <div class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl" style="background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(99,102,241,0.12)); border: 1px solid rgba(6,182,212,0.25); box-shadow: 0 4px 20px rgba(6,182,212,0.08);">
+          <div class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl" style="background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(99,102,241,0.12)); border: 1px solid rgba(6,182,212,0.25); box-shadow: 0 4px 20px rgba(6,182,212,0.08); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
             <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-teal-400/20 rounded-full blur-lg"></div>
             <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-rose-400/15 rounded-full blur-lg"></div>
             <div class="relative z-10">
@@ -291,7 +291,7 @@
           </div>
 
           <!-- Total Tickets -->
-          <div class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl" style="background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.12)); border: 1px solid rgba(59,130,246,0.25); box-shadow: 0 4px 20px rgba(59,130,246,0.08);">
+          <div class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl" style="background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.12)); border: 1px solid rgba(59,130,246,0.25); box-shadow: 0 4px 20px rgba(59,130,246,0.08); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
             <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-blue-400/20 rounded-full blur-lg"></div>
             <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-pink-400/15 rounded-full blur-lg"></div>
             <div class="relative z-10">
@@ -301,7 +301,7 @@
           </div>
           
           <!-- Pending Bonus -->
-          <div class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl" style="background: linear-gradient(135deg, rgba(244,63,94,0.15), rgba(245,158,11,0.1)); border: 1px solid rgba(244,63,94,0.25); box-shadow: 0 4px 20px rgba(244,63,94,0.08);">
+          <div class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl" style="background: linear-gradient(135deg, rgba(244,63,94,0.15), rgba(245,158,11,0.1)); border: 1px solid rgba(244,63,94,0.25); box-shadow: 0 4px 20px rgba(244,63,94,0.08); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
             <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-rose-400/20 rounded-full blur-lg"></div>
             <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-amber-400/15 rounded-full blur-lg"></div>
             <div class="relative z-10">
@@ -314,7 +314,7 @@
           </div>
           
           <!-- Paid Bonus -->
-          <div class="p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300" style="background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.12)); border: 1px solid rgba(16,185,129,0.25); box-shadow: 0 4px 20px rgba(16,185,129,0.08);">
+          <div class="p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300" style="background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.12)); border: 1px solid rgba(16,185,129,0.25); box-shadow: 0 4px 20px rgba(16,185,129,0.08); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
             <div class="absolute right-[-20%] top-[-20%] w-32 h-32 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
             <div class="absolute left-0 bottom-0 w-24 h-24 bg-rose-400/20 rounded-full blur-xl"></div>
             <div class="relative z-10">
