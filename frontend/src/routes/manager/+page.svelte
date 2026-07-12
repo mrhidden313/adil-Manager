@@ -179,7 +179,7 @@
   }
 </script>
 
-<div class="flex h-screen bg-slate-50 text-slate-900 font-sans pb-16 md:pb-0">
+<div class="flex h-screen bg-slate-50 text-slate-800 font-sans pb-16 md:pb-0">
   
   <!-- Sidebar -->
   <aside class="w-64 bg-slate-900 text-slate-300 flex-col hidden md:flex shadow-2xl z-10">
@@ -225,7 +225,7 @@
         <div class="w-8 h-8 rounded-full overflow-hidden mr-2 bg-indigo-50 flex items-center justify-center">
           <img src="/logo.png" alt="Logo" class="w-full h-full object-cover scale-110" onerror={(e) => e.currentTarget.style.display='none'} />
         </div>
-        <span class="font-bold text-slate-900">AK Flow</span>
+        <span class="font-bold text-slate-800">AK Flow</span>
       </div>
       <h2 class="hidden md:block text-lg font-semibold text-slate-800">Manager Dashboard</h2>
       
@@ -242,7 +242,7 @@
           {#if showNotifications}
             <div class="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden z-50">
               <div class="p-4 border-b border-slate-100 bg-slate-50/50">
-                <h3 class="font-bold text-slate-900">Notifications</h3>
+                <h3 class="font-bold text-slate-800">Notifications</h3>
               </div>
               <div class="max-h-64 overflow-y-auto">
                 {#if notifications.length === 0}
@@ -257,7 +257,7 @@
                       onclick={() => markNotificationAsRead(notif.id)}
                     >
                       <div class="flex justify-between items-start mb-1">
-                         <span class="text-xs font-bold text-slate-900" class:text-indigo-700={!notif.isRead}>{notif.title}</span>
+                         <span class="text-xs font-bold text-slate-800" class:text-indigo-700={!notif.isRead}>{notif.title}</span>
                       </div>
                       <p class="text-sm text-slate-600 leading-snug">{notif.message}</p>
                     </div>
@@ -283,7 +283,7 @@
             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Total Generated</p>
             <div class="relative z-10">
               <span class="text-[10px] font-semibold text-slate-400">PKR </span>
-              <span class="text-2xl font-black text-slate-900">{totalAmount.toLocaleString()}</span>
+              <span class="text-2xl font-black text-slate-800">{totalAmount.toLocaleString()}</span>
             </div>
             <p class="text-xs text-indigo-600 font-bold mt-2">{totalOrders} Orders</p>
           </div>
@@ -359,7 +359,7 @@
                       <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-amber-50 text-amber-700 border-amber-200">🎫 {ticket.genericData.ticketNumber} tickets</span>
                     {/if}
                   </div>
-                  <p class="font-bold text-slate-900 text-lg truncate w-[200px] sm:w-[300px] md:w-auto">{ticket.genericData?.name || ticket.transactionId}</p>
+                  <p class="font-bold text-slate-800 text-lg truncate w-[200px] sm:w-[300px] md:w-auto">{ticket.genericData?.name || ticket.transactionId}</p>
                   <p class="text-xs font-medium text-slate-500 mt-1">By: {ticket.createdBy?.name}</p>
                 </div>
               </div>
@@ -375,7 +375,7 @@
                 <div class="flex items-center gap-4 text-center sm:text-left">
                   <div class="w-12 h-12 bg-indigo-100 text-indigo-700 font-bold rounded-full flex items-center justify-center text-xl">{agent.name.charAt(0)}</div>
                   <div>
-                    <h4 class="font-bold text-slate-900">{agent.name}</h4>
+                    <h4 class="font-bold text-slate-800">{agent.name}</h4>
                     <p class="text-xs text-slate-500">{agent.email}</p>
                   </div>
                 </div>
@@ -383,7 +383,7 @@
                 <div class="flex items-center gap-4 flex-col sm:flex-row w-full sm:w-auto">
                   <div class="text-center sm:text-right">
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pending Bonus</p>
-                    <p class="text-xl font-black text-slate-900">PKR {pending.toLocaleString()}</p>
+                    <p class="text-xl font-black text-slate-800">PKR {pending.toLocaleString()}</p>
                   </div>
                   <button 
                     onclick={() => { selectedAgentForPayout = agent; showPayoutModal = true; }} 
@@ -398,7 +398,7 @@
           </div>
 
           <!-- Payout History -->
-          <h3 class="text-sm font-bold text-slate-900 mt-8 mb-4 uppercase tracking-wider">Payout History</h3>
+          <h3 class="text-sm font-bold text-slate-800 mt-8 mb-4 uppercase tracking-wider">Payout History</h3>
           <div class="space-y-4">
             {#if payouts.length === 0}
               <div class="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-100 shadow-sm">No payout history.</div>
@@ -406,14 +406,14 @@
             {#each payouts as payout, index}
               <div class="glass-card p-5 sm:p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4 relative overflow-hidden group hover:shadow-lg transition-all animate-stagger" style={`animation-delay: ${300 + (index * 50)}ms;`}>
                 <div>
-                  <p class="font-bold text-slate-900">Paid to {payout.agent?.name}</p>
+                  <p class="font-bold text-slate-800">Paid to {payout.agent?.name}</p>
                   <p class="text-xs text-slate-500">{new Date(payout.createdAt).toLocaleString()}</p>
                   <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border {payout.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">
                     {payout.status === 'APPROVED' ? 'Agent Approved' : 'Waiting for Agent'}
                   </span>
                 </div>
                 <div class="flex items-center gap-4">
-                  <span class="text-xl font-black text-slate-900">PKR {payout.amount.toLocaleString()}</span>
+                  <span class="text-xl font-black text-slate-800">PKR {payout.amount.toLocaleString()}</span>
                   <button onclick={() => openLightbox(payout.proofUrl)} class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="View Proof">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
                   </button>
@@ -432,7 +432,7 @@
   <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
-        <h2 class="text-xl font-black text-slate-900">Review Order</h2>
+        <h2 class="text-xl font-black text-slate-800">Review Order</h2>
         <button class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full hover:bg-slate-100 transition-colors" onclick={() => showTicketModal = false}><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
       
@@ -516,12 +516,12 @@
   <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
-        <h2 class="text-xl font-black text-slate-900">Pay Bonus</h2>
+        <h2 class="text-xl font-black text-slate-800">Pay Bonus</h2>
         <button class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full hover:bg-slate-100 transition-colors" onclick={() => { showPayoutModal = false; payoutProofPreview = ''; payoutProofFile = null; }}><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
       
       <div class="p-6 bg-slate-50/50">
-        <p class="text-sm text-slate-600 mb-4">You are paying <span class="font-bold text-slate-900">{selectedAgentForPayout.name}</span> — pending bonus: <span class="font-bold text-rose-600">PKR {(agentPendingBonuses.get(selectedAgentForPayout.id) || 0).toLocaleString()}</span>.</p>
+        <p class="text-sm text-slate-600 mb-4">You are paying <span class="font-bold text-slate-800">{selectedAgentForPayout.name}</span> — pending bonus: <span class="font-bold text-rose-600">PKR {(agentPendingBonuses.get(selectedAgentForPayout.id) || 0).toLocaleString()}</span>.</p>
         
         <div class="mb-5 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/50">
           <span class="block text-xs font-bold text-indigo-900/60 uppercase tracking-wider mb-2">Agent Payment Details</span>

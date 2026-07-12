@@ -69,7 +69,7 @@
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
     </button>
     <div>
-      <h1 class="text-3xl font-black text-slate-900 tracking-tight">Company Settings</h1>
+      <h1 class="text-3xl font-black text-slate-800 tracking-tight">Company Settings</h1>
       <p class="text-slate-500 font-medium mt-1">Manage global preferences for your agency</p>
     </div>
   </div>
@@ -84,19 +84,19 @@
       
       <!-- Basic Details -->
       <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
-        <h2 class="text-xl font-bold text-slate-900 mb-6">Basic Information</h2>
+        <h2 class="text-xl font-bold text-slate-800 mb-6">Basic Information</h2>
         
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-bold text-slate-700 mb-1">Company Name</label>
-            <input type="text" bind:value={company.name} class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all font-medium text-slate-900" required />
+            <input type="text" bind:value={company.name} class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all font-medium text-slate-800" required />
           </div>
         </div>
       </div>
 
       <!-- Advanced Settings -->
       <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
-        <h2 class="text-xl font-bold text-slate-900 mb-6">Pad & Workflow Rules</h2>
+        <h2 class="text-xl font-bold text-slate-800 mb-6">Pad & Workflow Rules</h2>
         
         <div class="space-y-6">
           <div class="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -107,9 +107,9 @@
             <div class="shrink-0 flex items-center bg-white rounded-xl overflow-hidden border border-indigo-200 shadow-sm">
               <span class="px-3 text-slate-500 font-bold bg-slate-50 border-r border-slate-200 py-2">Rs</span>
               {#if currentUser?.role === 'SUPER_ADMIN'}
-                <input type="number" bind:value={company.maxPadLimit} class="w-32 px-3 py-2 outline-none font-black text-slate-900" />
+                <input type="number" bind:value={company.maxPadLimit} class="w-32 px-3 py-2 outline-none font-black text-slate-800" />
               {:else}
-                <div class="w-32 px-3 py-2 font-black text-slate-900">{company.maxPadLimit}</div>
+                <div class="w-32 px-3 py-2 font-black text-slate-800">{company.maxPadLimit}</div>
               {/if}
             </div>
           </div>
@@ -125,7 +125,7 @@
               <div class="w-12 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
             </div>
             <div class="ml-4">
-              <h3 class="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">Enable Sales Chat</h3>
+              <h3 class="font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">Enable Sales Chat</h3>
               <p class="text-sm text-slate-500 mt-0.5">Allow Sales agents to use the Team Chat feature.</p>
             </div>
           </label>
@@ -136,7 +136,7 @@
               <div class="w-12 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
             </div>
             <div class="ml-4">
-              <h3 class="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">Require Manager Approval for Tickets</h3>
+              <h3 class="font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">Require Manager Approval for Tickets</h3>
               <p class="text-sm text-slate-500 mt-0.5">Tickets created by Sales must be approved before Fulfillment can start working on them.</p>
             </div>
           </label>

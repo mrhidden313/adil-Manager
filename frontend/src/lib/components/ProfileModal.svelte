@@ -192,7 +192,7 @@
                 </form>
               {:else}
                 <div class="text-center mb-6">
-                  <h2 class="text-2xl font-black text-slate-900">{userProfile?.name}</h2>
+                  <h2 class="text-2xl font-black text-slate-800">{userProfile?.name}</h2>
                   <p class="text-sm font-medium text-slate-500">{userProfile?.email}</p>
                   <button onclick={() => isEditing = true} class="mt-2 text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider">
                     Edit Profile

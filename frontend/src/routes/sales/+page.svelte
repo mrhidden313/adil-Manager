@@ -167,7 +167,7 @@
   }
 </script>
 
-<div class="flex h-screen bg-slate-50 text-slate-900 font-sans pb-16 md:pb-0">
+<div class="flex h-screen bg-slate-50 text-slate-800 font-sans pb-16 md:pb-0">
   
   <!-- Sidebar -->
   <aside class="w-64 bg-slate-900 text-slate-300 flex-col hidden md:flex shadow-2xl z-10">
@@ -209,7 +209,7 @@
         <div class="w-8 h-8 rounded-full overflow-hidden mr-2 bg-indigo-50 flex items-center justify-center">
           <img src="/logo.png" alt="Logo" class="w-full h-full object-cover scale-110" onerror={(e) => e.currentTarget.style.display='none'} />
         </div>
-        <span class="font-bold text-slate-900">AK Flow</span>
+        <span class="font-bold text-slate-800">AK Flow</span>
       </div>
       <h2 class="hidden md:block text-lg font-semibold text-slate-800">Sales Dashboard</h2>
       <div class="flex items-center space-x-4">
@@ -226,7 +226,7 @@
           {#if showNotifications}
             <div class="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden z-50">
               <div class="p-4 border-b border-slate-100 bg-slate-50/50">
-                <h3 class="font-bold text-slate-900">Notifications</h3>
+                <h3 class="font-bold text-slate-800">Notifications</h3>
               </div>
               <div class="max-h-64 overflow-y-auto">
                 {#if notifications.length === 0}
@@ -241,7 +241,7 @@
                       onclick={() => markNotificationAsRead(notif.id)}
                     >
                       <div class="flex justify-between items-start mb-1">
-                         <span class="text-xs font-bold text-slate-900" class:text-indigo-700={!notif.isRead}>{notif.title}</span>
+                         <span class="text-xs font-bold text-slate-800" class:text-indigo-700={!notif.isRead}>{notif.title}</span>
                       </div>
                       <p class="text-sm text-slate-600 leading-snug">{notif.message}</p>
                     </div>
@@ -262,7 +262,7 @@
         
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 animate-stagger" style="animation-delay: 100ms;">
           <div>
-            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Welcome back!</h1>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">Welcome back!</h1>
           </div>
           <button onclick={() => showModal = true} class="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-2xl shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5 transition-all focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
@@ -280,7 +280,7 @@
             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Total Sales</p>
             <div class="relative z-10">
               <span class="text-[10px] font-semibold text-slate-400">PKR </span>
-              <span class="text-2xl font-black text-slate-900">{totalSales.toLocaleString()}</span>
+              <span class="text-2xl font-black text-slate-800">{totalSales.toLocaleString()}</span>
             </div>
             <p class="text-xs text-emerald-600 font-bold mt-2">{totalOrders} Orders</p>
           </div>
@@ -352,7 +352,7 @@
               <div class="glass-card p-5 sm:p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4 relative overflow-hidden group hover:shadow-lg transition-all animate-stagger" style={`animation-delay: ${400 + (index * 50)}ms;`}>
                 <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b {ticket.status === 'COMPLETED' ? 'from-emerald-400 to-emerald-600' : ticket.status === 'APPROVED' ? 'from-indigo-400 to-indigo-600' : 'from-amber-400 to-amber-600'}"></div>
                 <div class="flex-1 pl-4">
-                  <h3 class="font-bold text-slate-900 text-lg">{ticket.genericData?.name || ticket.transactionId}</h3>
+                  <h3 class="font-bold text-slate-800 text-lg">{ticket.genericData?.name || ticket.transactionId}</h3>
                   <div class="flex items-center space-x-3 mt-1">
                     <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-xs font-bold border border-emerald-100">
                       PKR {ticket.price}
@@ -383,7 +383,7 @@
             {#each payouts as payout, index}
               <div class="glass-card p-5 sm:p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4 relative overflow-hidden group hover:shadow-lg transition-all animate-stagger" style={`animation-delay: ${400 + (index * 50)}ms;`}>
                 <div>
-                  <p class="font-black text-slate-900 text-2xl">PKR {payout.amount.toFixed(2)}</p>
+                  <p class="font-black text-slate-800 text-2xl">PKR {payout.amount.toFixed(2)}</p>
                   <p class="text-xs text-slate-500 mt-1">{new Date(payout.createdAt).toLocaleString()}</p>
                   <span class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border {payout.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}">
                     {payout.status === 'APPROVED' ? 'Received & Approved' : 'Waiting for Your Approval'}
@@ -416,7 +416,7 @@
       <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white relative">
         <div class="absolute top-0 left-0 w-full h-1 bg-indigo-600"></div>
         <div>
-          <h2 class="text-xl font-bold text-slate-900">Submit New Order</h2>
+          <h2 class="text-xl font-bold text-slate-800">Submit New Order</h2>
         </div>
         <button class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full transition-colors" onclick={() => showModal = false}>
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>

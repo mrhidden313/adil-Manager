@@ -183,7 +183,7 @@
   }
 </script>
 
-<div class="flex h-screen bg-slate-50 text-slate-900 font-sans">
+<div class="flex h-screen bg-slate-50 text-slate-800 font-sans">
   
   <!-- Sidebar -->
   <aside class="w-64 bg-slate-900 text-slate-300 flex-col hidden md:flex shadow-2xl z-10">
@@ -229,7 +229,7 @@
         <div class="w-8 h-8 rounded-full overflow-hidden mr-2 bg-indigo-50 flex items-center justify-center">
           <img src="/logo.png" alt="Logo" class="w-full h-full object-cover scale-110" onerror={(e) => e.currentTarget.style.display='none'} />
         </div>
-        <span class="font-bold text-slate-900">AK Flow</span>
+        <span class="font-bold text-slate-800">AK Flow</span>
       </div>
       <h2 class="hidden md:block text-lg font-semibold text-slate-800">Staff Management</h2>
       <div class="flex items-center space-x-4">
@@ -244,7 +244,7 @@
       <div class="max-w-7xl mx-auto">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
-            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Team Roster</h1>
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">Team Roster</h1>
             <p class="text-slate-500 mt-1 text-sm">Manage your Sales and Fulfillment agents.</p>
           </div>
           <button onclick={() => showAddTeamModal = true} class="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-lg shadow-sm shadow-indigo-600/20 transition-all">
@@ -269,7 +269,7 @@
             <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
             </div>
-            <h3 class="text-lg font-bold text-slate-900 mb-2">No Agents Found</h3>
+            <h3 class="text-lg font-bold text-slate-800 mb-2">No Agents Found</h3>
             <p class="text-slate-500 max-w-md mx-auto mb-6">You have no staff members in this category.</p>
             {#if activeTab === 'ACTIVE'}
               <button onclick={() => showAddTeamModal = true} class="inline-flex text-indigo-600 font-medium hover:text-indigo-700">
@@ -288,7 +288,7 @@
               >
                 <div class="p-5 border-b border-slate-100 flex justify-between items-start relative">
                   <div class="pr-8">
-                    <h3 class="text-lg font-bold text-slate-900 line-clamp-1">{member.name}</h3>
+                    <h3 class="text-lg font-bold text-slate-800 line-clamp-1">{member.name}</h3>
                     <div class="flex items-center gap-2 mt-2 flex-wrap">
                       <span class={`px-2.5 py-1 inline-flex text-[10px] font-bold uppercase tracking-wider rounded-md border ${member.role === 'SALES' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}>
                         {member.role}
@@ -315,7 +315,7 @@
                     </div>
                     <div class="flex-1 min-w-0">
                       <p class="text-xs text-slate-500 font-medium mb-0.5">Email</p>
-                      <p class="text-sm font-semibold text-slate-900 truncate">{member.email}</p>
+                      <p class="text-sm font-semibold text-slate-800 truncate">{member.email}</p>
                     </div>
                   </div>
                 </div>
@@ -342,7 +342,7 @@
     <div class="bg-white rounded-3xl w-[calc(100%-2rem)] max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto flex flex-col">
       <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
         <div>
-          <h3 class="text-xl font-bold text-slate-900">Agent History</h3>
+          <h3 class="text-xl font-bold text-slate-800">Agent History</h3>
           <p class="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wider">{selectedAgent.name}</p>
         </div>
         <button onclick={() => showStatsModal = false} class="text-slate-400 hover:text-slate-700 bg-slate-50 rounded-full p-2 hover:bg-slate-100 transition-colors">
@@ -516,7 +516,7 @@
       <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white relative">
         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
         <div>
-          <h3 class="text-xl font-bold text-slate-900">Hire Team Member</h3>
+          <h3 class="text-xl font-bold text-slate-800">Hire Team Member</h3>
           <p class="text-xs text-slate-500 mt-1">Add a new agent to your agency.</p>
         </div>
         <button onclick={() => showAddTeamModal = false} class="text-slate-400 hover:text-slate-700 bg-slate-50 rounded-full p-2 hover:bg-slate-100 transition-colors">

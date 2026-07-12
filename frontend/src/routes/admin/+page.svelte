@@ -154,7 +154,7 @@
   }
 </script>
 
-<div class="flex h-screen bg-slate-50 text-slate-900 font-sans">
+<div class="flex h-screen bg-slate-50 text-slate-800 font-sans">
   
   <!-- Sidebar -->
   <aside class="w-64 bg-slate-900 text-slate-300 flex-col hidden md:flex shadow-2xl z-10">
@@ -196,7 +196,7 @@
         <div class="w-8 h-8 rounded-full overflow-hidden mr-2 bg-indigo-50 flex items-center justify-center">
           <img src="/logo.png" alt="Logo" class="w-full h-full object-cover scale-110" onerror={(e) => e.currentTarget.style.display='none'} />
         </div>
-        <span class="font-bold text-slate-900">AK Flow</span>
+        <span class="font-bold text-slate-800">AK Flow</span>
       </div>
       <h2 class="hidden md:block text-lg font-semibold text-slate-800">Platform Overview</h2>
       <div class="flex items-center space-x-4">
@@ -204,7 +204,7 @@
         <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200 cursor-pointer" onclick={() => showProfile = true}>
           S
         </div>
-        <button onclick={() => { localStorage.clear(); window.location.href = '/'; }} class="md:hidden text-slate-500 hover:text-slate-900">
+        <button onclick={() => { localStorage.clear(); window.location.href = '/'; }} class="md:hidden text-slate-500 hover:text-slate-800">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         </button>
       </div>
@@ -217,7 +217,7 @@
         <!-- Header Actions -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
-            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Agencies</h1>
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">Agencies</h1>
             <p class="text-slate-500 mt-1 text-sm">Manage tenant companies, subscriptions, and owners.</p>
           </div>
           <button onclick={() => showAddCompanyModal = true} class="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-lg shadow-sm shadow-indigo-600/20 transition-all focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none">
@@ -247,7 +247,7 @@
             <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
             </div>
-            <h3 class="text-lg font-bold text-slate-900 mb-2">No Agencies Found</h3>
+            <h3 class="text-lg font-bold text-slate-800 mb-2">No Agencies Found</h3>
             <p class="text-slate-500 max-w-md mx-auto mb-6">No agencies match the current filter in this category.</p>
             {#if activeTab === 'TRIAL_SUSPENDED'}
               <button onclick={() => showAddCompanyModal = true} class="inline-flex text-indigo-600 font-medium hover:text-indigo-700">
@@ -264,7 +264,7 @@
                 <!-- Card Header -->
                 <div class="p-5 border-b border-slate-100 flex justify-between items-start relative">
                   <div class="pr-8">
-                    <h3 class="text-lg font-bold text-slate-900 line-clamp-1" title={comp.name}>{comp.name}</h3>
+                    <h3 class="text-lg font-bold text-slate-800 line-clamp-1" title={comp.name}>{comp.name}</h3>
                     <p class="text-[10px] text-slate-500 font-semibold mb-1">Created: {new Date(comp.createdAt).toLocaleDateString()}</p>
                     <div class="flex items-center gap-2 mt-1.5 flex-wrap">
                       {#if comp.isDeleted}
@@ -302,7 +302,7 @@
                       {comp.users[0]?.name.substring(0, 2) || 'NA'}
                     </div>
                     <div class="flex-1 min-w-0">
-                      <p class="text-sm font-bold text-slate-900 truncate">{comp.users[0]?.name || 'No Manager'}</p>
+                      <p class="text-sm font-bold text-slate-800 truncate">{comp.users[0]?.name || 'No Manager'}</p>
                       <p class="text-xs text-slate-500 truncate">{comp.users[0]?.email || 'N/A'}</p>
                     </div>
                   </div>
@@ -313,7 +313,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                       </div>
                       <div>
-                        <div class="text-xl font-black text-slate-900 leading-none">{comp._count.users}</div>
+                        <div class="text-xl font-black text-slate-800 leading-none">{comp._count.users}</div>
                         <div class="text-[10px] uppercase font-bold text-slate-500 mt-1 tracking-wide">Staff</div>
                       </div>
                     </div>
@@ -323,7 +323,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                       </div>
                       <div>
-                        <div class="text-xl font-black text-slate-900 leading-none">{comp._count.tickets}</div>
+                        <div class="text-xl font-black text-slate-800 leading-none">{comp._count.tickets}</div>
                         <div class="text-[10px] uppercase font-bold text-slate-500 mt-1 tracking-wide">Tickets</div>
                       </div>
                     </div>
@@ -377,7 +377,7 @@
       <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white relative">
         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
         <div>
-          <h3 class="text-xl font-bold text-slate-900">Onboard Agency</h3>
+          <h3 class="text-xl font-bold text-slate-800">Onboard Agency</h3>
           <p class="text-xs text-slate-500 mt-1">Create a tenant workspace and assign an owner.</p>
         </div>
         <button onclick={() => showAddCompanyModal = false} class="text-slate-400 hover:text-slate-700 bg-slate-50 rounded-full p-2 hover:bg-slate-100 transition-colors">
@@ -434,7 +434,7 @@
     <div class="bg-white rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
       <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
         <div>
-          <h3 class="text-xl font-bold text-slate-900">{selectedCompanyName} Staff</h3>
+          <h3 class="text-xl font-bold text-slate-800">{selectedCompanyName} Staff</h3>
           <p class="text-xs text-slate-500 mt-1">Users operating inside this tenant's workspace.</p>
         </div>
         <button onclick={() => showUsersModal = false} class="text-slate-400 hover:text-slate-700 bg-slate-50 rounded-full p-2 hover:bg-slate-100 transition-colors">
@@ -469,7 +469,7 @@
                         {user.name.substring(0, 2)}
                       </div>
                       <div class="ml-4">
-                        <div class="text-sm font-bold text-slate-900">{user.name}</div>
+                        <div class="text-sm font-bold text-slate-800">{user.name}</div>
                         <div class="text-xs text-slate-500">{user.email}</div>
                       </div>
                     </div>

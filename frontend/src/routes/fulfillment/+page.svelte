@@ -130,7 +130,7 @@
   }
 </script>
 
-<div class="flex h-screen bg-slate-50 text-slate-900 font-sans">
+<div class="flex h-screen bg-slate-50 text-slate-800 font-sans">
   
   <!-- Sidebar -->
   <aside class="w-64 bg-slate-900 text-slate-300 flex-col hidden md:flex shadow-2xl z-10">
@@ -172,7 +172,7 @@
         <div class="w-8 h-8 rounded-full overflow-hidden mr-2 bg-indigo-50 flex items-center justify-center">
           <img src="/logo.png" alt="Logo" class="w-full h-full object-cover scale-110" onerror={(e) => e.currentTarget.style.display='none'} />
         </div>
-        <span class="font-bold text-slate-900">AK Flow</span>
+        <span class="font-bold text-slate-800">AK Flow</span>
       </div>
       <h2 class="hidden md:block text-lg font-semibold text-slate-800">Local Agent Dashboard</h2>
       <div class="flex items-center space-x-4">
@@ -180,7 +180,7 @@
         <button class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold border border-emerald-200 cursor-pointer" onclick={() => showProfile = true}>
           L
         </button>
-        <button aria-label="Close menu" onclick={() => { localStorage.clear(); window.location.href = '/'; }} class="md:hidden text-slate-500 hover:text-slate-900">
+        <button aria-label="Close menu" onclick={() => { localStorage.clear(); window.location.href = '/'; }} class="md:hidden text-slate-500 hover:text-slate-800">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         </button>
       </div>
@@ -190,7 +190,7 @@
     <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50">
       <div class="max-w-5xl mx-auto">
         <div class="mb-6">
-          <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Assigned Tasks</h1>
+          <h1 class="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">Assigned Tasks</h1>
           <p class="text-slate-500 mt-1 text-sm">Process and complete your fulfillment queue.</p>
         </div>
 
@@ -211,7 +211,7 @@
             <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
-            <h3 class="text-lg font-bold text-slate-900 mb-2">Queue Empty!</h3>
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Queue Empty!</h3>
             <p class="text-slate-500 max-w-md mx-auto">You have no tasks in the "{activeTab === 'APPROVED' ? 'To-Do' : 'Finished'}" list right now. Relax!</p>
           </div>
         {:else}
@@ -235,7 +235,7 @@
                     <span class="text-xs font-bold text-slate-400">{new Date(ticket.updatedAt).toLocaleDateString()}</span>
                   </div>
                   
-                  <h3 class="font-bold text-slate-900 text-lg mb-1">{ticket.genericData?.name || ticket.transactionId}</h3>
+                  <h3 class="font-bold text-slate-800 text-lg mb-1">{ticket.genericData?.name || ticket.transactionId}</h3>
                   {#if ticket.genericData?.ticketNumber}
                     <div class="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-lg px-2 py-0.5 mb-1">
                       <span class="text-[10px] font-bold text-amber-600 uppercase tracking-wider">🎫 Tickets:</span>
@@ -278,7 +278,7 @@
       <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white relative">
         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-400"></div>
         <div>
-          <h2 class="text-xl font-bold text-slate-900">Finish Order</h2>
+          <h2 class="text-xl font-bold text-slate-800">Finish Order</h2>
           <p class="text-xs text-slate-500 mt-0.5">Upload proof of completion</p>
         </div>
         <button aria-label="Close modal" class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full hover:bg-slate-100 transition-colors" onclick={() => showModal = false}>
@@ -293,7 +293,7 @@
           <div class="space-y-3">
             <div>
               <span class="block text-[10px] uppercase text-slate-400 font-bold mb-0.5">Customer Name</span>
-              <span class="text-slate-900 font-bold text-base">{selectedTicket.genericData?.name || selectedTicket.transactionId}</span>
+              <span class="text-slate-800 font-bold text-base">{selectedTicket.genericData?.name || selectedTicket.transactionId}</span>
             </div>
             {#if selectedTicket.genericData?.phone}
               <div class="mt-2">

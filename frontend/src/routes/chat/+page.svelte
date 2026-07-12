@@ -278,7 +278,7 @@
         <span class="text-indigo-600 font-bold text-lg">#</span>
       </div>
       <div>
-        <h2 class="font-bold text-slate-900">Company General</h2>
+        <h2 class="font-bold text-slate-800">Company General</h2>
         <p class="text-xs text-slate-500 font-medium">Chat with everyone in the company</p>
       </div>
     </header>
@@ -410,7 +410,7 @@
         <input type="file" accept="image/*" class="hidden" bind:this={fileInput} onchange={handleFileSelect} />
         
         <div class="flex-1 bg-slate-50 border border-slate-200 rounded-2xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition-all flex items-center px-4">
-          <input type="text" bind:value={newMessage} placeholder="Type a message..." class="w-full bg-transparent border-none focus:ring-0 py-3.5 text-sm text-slate-900 outline-none" autocomplete="off" />
+          <input type="text" bind:value={newMessage} placeholder="Type a message..." class="w-full bg-transparent border-none focus:ring-0 py-3.5 text-sm text-slate-800 outline-none" autocomplete="off" />
         </div>
         
         <button type="submit" disabled={isSending || (!newMessage.trim() && !selectedFile)} class="p-3.5 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-indigo-600/20 shrink-0">
