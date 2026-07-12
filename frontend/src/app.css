@@ -50,3 +50,23 @@
     transform: translateY(0) scale(1);
   }
 }
+
+@layer utilities {
+  .liquid-ripple {
+    position: absolute;
+    border-radius: 50%;
+    transform: scale(0);
+    animation: liquid-ripple-anim 600ms linear;
+    background-color: rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+    z-index: 10;
+  }
+}
+
+@keyframes liquid-ripple-anim {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+

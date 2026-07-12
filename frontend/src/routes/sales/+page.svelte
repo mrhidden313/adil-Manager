@@ -1,6 +1,7 @@
 <script lang="ts">
   import { toast } from '$lib/stores/toast';
   import { onMount, onDestroy } from 'svelte';
+  import { ripple } from '$lib/actions/ripple';
   import ProfileModal from '$lib/components/ProfileModal.svelte';
   import BottomNav from '$lib/components/BottomNav.svelte';
   import Lightbox from '$lib/components/Lightbox.svelte';
@@ -274,7 +275,7 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 animate-stagger" style="animation-delay: 200ms;">
 
           <!-- Total Sales -->
-          <div class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl" style="background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3)); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 30px rgba(0,0,0,0.05); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+          <div use:ripple class="p-5 cursor-pointer relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl" style="background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3)); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 30px rgba(0,0,0,0.05); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
             <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-teal-400/20 rounded-full blur-lg"></div>
             <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-rose-400/15 rounded-full blur-lg"></div>
             <div class="relative z-10">
@@ -288,7 +289,7 @@
           </div>
 
           <!-- Total Tickets -->
-          <div class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl" style="background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3)); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 30px rgba(0,0,0,0.05); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+          <div use:ripple class="p-5 cursor-pointer relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl" style="background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3)); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 30px rgba(0,0,0,0.05); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
             <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-blue-400/20 rounded-full blur-lg"></div>
             <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-pink-400/15 rounded-full blur-lg"></div>
             <div class="relative z-10">
@@ -298,7 +299,7 @@
           </div>
           
           <!-- Pending Bonus -->
-          <div class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl" style="background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3)); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 30px rgba(0,0,0,0.05); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+          <div use:ripple class="p-5 cursor-pointer relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl" style="background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3)); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 30px rgba(0,0,0,0.05); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
             <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-amber-400/20 rounded-full blur-lg"></div>
             <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-rose-400/15 rounded-full blur-lg"></div>
             <div class="relative z-10">
@@ -311,7 +312,7 @@
           </div>
           
           <!-- Paid Bonus -->
-          <div class="p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300" style="background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3)); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 30px rgba(0,0,0,0.05); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+          <div use:ripple class="p-5 cursor-pointer rounded-2xl relative overflow-hidden flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300" style="background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3)); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 30px rgba(0,0,0,0.05); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
             <div class="absolute right-[-20%] top-[-20%] w-32 h-32 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
             <div class="absolute left-0 bottom-0 w-24 h-24 bg-rose-400/20 rounded-full blur-xl"></div>
             <div class="relative z-10">
