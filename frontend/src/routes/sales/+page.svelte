@@ -311,17 +311,17 @@
           </div>
           
           <!-- Paid Bonus -->
-          <div class="p-5 rounded-2xl text-white relative overflow-hidden flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300" style="background: linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85)); border: 1px solid rgba(99,102,241,0.4); box-shadow: 0 8px 24px rgba(99,102,241,0.25);">
+          <div class="p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300" style="background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.12)); border: 1px solid rgba(99,102,241,0.25); box-shadow: 0 4px 20px rgba(99,102,241,0.08);">
             <div class="absolute right-[-20%] top-[-20%] w-32 h-32 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
             <div class="absolute left-0 bottom-0 w-24 h-24 bg-rose-400/20 rounded-full blur-xl"></div>
             <div class="relative z-10">
-              <p class="text-[10px] font-bold text-indigo-100 uppercase tracking-wider mb-1">Total Paid Bonus</p>
+              <p class="text-[10px] font-bold text-slate-800 uppercase tracking-wider mb-1">Total Paid Bonus</p>
               <div>
-                <span class="text-[10px] font-bold text-indigo-200">PKR </span>
-                <span class="text-2xl font-black text-white">{paidBonus.toLocaleString()}</span>
+                <span class="text-[10px] font-bold text-slate-800">PKR </span>
+                <span class="text-2xl font-black text-slate-900">{paidBonus.toLocaleString()}</span>
               </div>
             </div>
-            <p class="text-[10px] text-indigo-200 font-medium mt-2 relative z-10">Total cash received</p>
+            <p class="text-[10px] text-slate-800 font-bold mt-2 relative z-10">Total cash received</p>
           </div>
 
         </div>
