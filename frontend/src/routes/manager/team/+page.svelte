@@ -166,12 +166,19 @@
       const completed = completedTickets.length;
       const totalRevenue = completedTickets.reduce((sum, t) => sum + (t.price || 0), 0);
       const earnedBonus = completedTickets.reduce((sum, t) => sum + (t.bonusAmount || 0), 0);
-      return { total: submitted.length, pending, approved, completed, totalRevenue, earnedBonus };
+      // Sum up total individual tickets from all submitted orders
+      const totalTickets = submitted.reduce((sum, t) => sum + (parseInt(t.genericData?.ticketNumber) || 1), 0);
+      const completedTicketsCount = completedTickets.reduce((sum, t) => sum + (parseInt(t.genericData?.ticketNumber) || 1), 0);
+      return { total: submitted.length, pending, approved, completed, totalRevenue, earnedBonus, totalTickets, completedTicketsCount };
     } else {
       const assigned = allTickets.filter(t => t.assignedToId === agent.id);
       const pendingWork = assigned.filter(t => t.status === 'APPROVED').length;
-      const completedWork = assigned.filter(t => t.status === 'COMPLETED').length;
-      return { total: assigned.length, pendingWork, completedWork };
+      const completedWork = assigned.filter(t => t.status === 'COMPLETED');
+      const completedWorkCount = completedWork.length;
+      // Sum up total individual tickets from all assigned orders
+      const totalTickets = assigned.reduce((sum, t) => sum + (parseInt(t.genericData?.ticketNumber) || 1), 0);
+      const completedTicketsCount = completedWork.reduce((sum, t) => sum + (parseInt(t.genericData?.ticketNumber) || 1), 0);
+      return { total: assigned.length, pendingWork, completedWork: completedWorkCount, totalTickets, completedTicketsCount };
     }
   }
 </script>
@@ -348,26 +355,61 @@
           {@const agentPayouts = allPayouts.filter(p => p.agentId === selectedAgent.id)}
           {@const paidBonus = agentPayouts.reduce((sum, p) => sum + p.amount, 0)}
           {@const pendingBonus = stats.earnedBonus - paidBonus}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-gradient-to-br from-emerald-500 to-emerald-700 p-5 rounded-2xl shadow-sm text-center col-span-2 text-white">
-              <p class="text-xs font-bold uppercase tracking-wide opacity-80 mb-1">Total Generated (Completed)</p>
-              <p class="text-4xl font-black">PKR {stats.totalRevenue.toLocaleString()}</p>
+          <div class="space-y-3">
+
+            <!-- Revenue Banner -->
+            <div class="p-5 rounded-2xl text-white relative overflow-hidden" style="background: linear-gradient(135deg, rgba(16,185,129,0.6), rgba(5,150,105,0.6)); backdrop-filter: blur(8px); border: 1px solid rgba(16,185,129,0.3);">
+              <div class="absolute right-0 top-0 w-24 h-24 bg-white/10 rounded-bl-full"></div>
+              <p class="text-[10px] font-bold uppercase tracking-wide text-white/80 mb-1">Total Generated (Completed Orders)</p>
+              <div>
+                <span class="text-xs font-semibold text-white/70">PKR </span>
+                <span class="text-3xl font-black">{stats.totalRevenue.toLocaleString()}</span>
+              </div>
             </div>
-            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center">
-              <p class="text-4xl font-black text-slate-900 mb-1">{stats.total}</p>
-              <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Total Submitted</p>
-            </div>
-            <div class="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm text-center">
-              <p class="text-4xl font-black text-emerald-600 mb-1">{stats.completed}</p>
-              <p class="text-xs font-bold text-emerald-600 uppercase tracking-wide">Confirmed</p>
-            </div>
-            <div class="bg-white p-5 rounded-2xl border border-amber-200 shadow-sm text-center">
-              <p class="text-4xl font-black text-amber-600 mb-1">{stats.pending}</p>
-              <p class="text-xs font-bold text-amber-600 uppercase tracking-wide">Pending</p>
-            </div>
-            <div class="bg-white p-5 rounded-2xl border border-indigo-200 shadow-sm text-center">
-              <p class="text-4xl font-black text-indigo-600 mb-1">{stats.approved}</p>
-              <p class="text-xs font-bold text-indigo-600 uppercase tracking-wide">Approved</p>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 gap-3">
+
+              <!-- Total Orders -->
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1)); border: 1px solid rgba(99,102,241,0.2);">
+                <div class="absolute right-[-8px] top-[-8px] w-14 h-14 bg-indigo-400/20 rounded-full blur-md"></div>
+                <p class="text-2xl font-black text-indigo-700 relative z-10">{stats.total}</p>
+                <p class="text-[10px] font-bold text-indigo-500 uppercase tracking-wide">Total Orders</p>
+              </div>
+
+              <!-- Total Tickets (SUM) -->
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(6,182,212,0.1), rgba(59,130,246,0.1)); border: 1px solid rgba(6,182,212,0.2);">
+                <div class="absolute right-[-8px] top-[-8px] w-14 h-14 bg-cyan-400/20 rounded-full blur-md"></div>
+                <p class="text-2xl font-black text-cyan-700 relative z-10">{stats.totalTickets}</p>
+                <p class="text-[10px] font-bold text-cyan-600 uppercase tracking-wide">Total Tickets</p>
+              </div>
+
+              <!-- Completed Orders -->
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(52,211,153,0.1)); border: 1px solid rgba(16,185,129,0.2);">
+                <div class="absolute right-[-8px] top-[-8px] w-14 h-14 bg-emerald-400/20 rounded-full blur-md"></div>
+                <p class="text-2xl font-black text-emerald-700 relative z-10">{stats.completed}</p>
+                <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Confirmed Orders</p>
+              </div>
+
+              <!-- Confirmed Tickets (SUM) -->
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(52,211,153,0.15)); border: 1px solid rgba(16,185,129,0.3);">
+                <div class="absolute right-[-8px] top-[-8px] w-14 h-14 bg-emerald-400/30 rounded-full blur-md"></div>
+                <p class="text-2xl font-black text-emerald-800 relative z-10">{stats.completedTicketsCount}</p>
+                <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">Confirmed Tickets</p>
+              </div>
+
+              <!-- Pending -->
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(251,191,36,0.1)); border: 1px solid rgba(245,158,11,0.2);">
+                <p class="text-2xl font-black text-amber-700">{stats.pending}</p>
+                <p class="text-[10px] font-bold text-amber-600 uppercase tracking-wide">Pending</p>
+              </div>
+
+              <!-- Approved -->
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1)); border: 1px solid rgba(99,102,241,0.2);">
+                <p class="text-2xl font-black text-indigo-700">{stats.approved}</p>
+                <p class="text-[10px] font-bold text-indigo-600 uppercase tracking-wide">Approved</p>
+              </div>
+
             </div>
           </div>
           
@@ -422,18 +464,43 @@
           </div>
         {:else}
           {@const stats = getAgentStats(selectedAgent)}
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm text-center col-span-2">
-              <p class="text-4xl font-black text-emerald-600 mb-1">{stats.completedWork}</p>
-              <p class="text-xs font-bold text-emerald-600 uppercase tracking-wide">Total Confirmed</p>
+          <div class="space-y-3">
+
+            <!-- Confirmed Tickets Banner -->
+            <div class="p-5 rounded-2xl text-white relative overflow-hidden" style="background: linear-gradient(135deg, rgba(16,185,129,0.6), rgba(5,150,105,0.6)); backdrop-filter: blur(8px); border: 1px solid rgba(16,185,129,0.3);">
+              <div class="absolute right-0 top-0 w-24 h-24 bg-white/10 rounded-bl-full"></div>
+              <p class="text-[10px] font-bold uppercase tracking-wide text-white/80 mb-1">Total Confirmed Tickets (Physical)</p>
+              <span class="text-3xl font-black">{stats.completedTicketsCount}</span>
             </div>
-            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center">
-              <p class="text-4xl font-black text-slate-900 mb-1">{stats.total}</p>
-              <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Total Assigned</p>
-            </div>
-            <div class="bg-white p-5 rounded-2xl border border-indigo-200 shadow-sm text-center">
-              <p class="text-4xl font-black text-indigo-600 mb-1">{stats.pendingWork}</p>
-              <p class="text-xs font-bold text-indigo-600 uppercase tracking-wide">Work Pending</p>
+
+            <div class="grid grid-cols-2 gap-3">
+
+              <!-- Total Assigned Orders -->
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1)); border: 1px solid rgba(99,102,241,0.2);">
+                <div class="absolute right-[-8px] top-[-8px] w-14 h-14 bg-indigo-400/20 rounded-full blur-md"></div>
+                <p class="text-2xl font-black text-indigo-700 relative z-10">{stats.total}</p>
+                <p class="text-[10px] font-bold text-indigo-500 uppercase tracking-wide">Total Assigned Orders</p>
+              </div>
+
+              <!-- Total Tickets (ALL) -->
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(6,182,212,0.1), rgba(59,130,246,0.1)); border: 1px solid rgba(6,182,212,0.2);">
+                <div class="absolute right-[-8px] top-[-8px] w-14 h-14 bg-cyan-400/20 rounded-full blur-md"></div>
+                <p class="text-2xl font-black text-cyan-700 relative z-10">{stats.totalTickets}</p>
+                <p class="text-[10px] font-bold text-cyan-600 uppercase tracking-wide">Total Tickets (All)</p>
+              </div>
+
+              <!-- Completed Orders -->
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(52,211,153,0.1)); border: 1px solid rgba(16,185,129,0.2);">
+                <p class="text-2xl font-black text-emerald-700">{stats.completedWork}</p>
+                <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Completed Orders</p>
+              </div>
+
+              <!-- Work Pending -->
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(251,191,36,0.1)); border: 1px solid rgba(245,158,11,0.2);">
+                <p class="text-2xl font-black text-amber-700">{stats.pendingWork}</p>
+                <p class="text-[10px] font-bold text-amber-600 uppercase tracking-wide">Work Pending</p>
+              </div>
+
             </div>
           </div>
         {/if}

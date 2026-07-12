@@ -277,9 +277,9 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 animate-stagger" style="animation-delay: 100ms;">
 
           <!-- Total Generated -->
-          <div class="glass-panel p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-teal-400/15 rounded-full blur-lg"></div>
-            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-rose-400/10 rounded-full blur-lg"></div>
+          <div class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl" style="background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(99,102,241,0.12)); border: 1px solid rgba(6,182,212,0.25); box-shadow: 0 4px 20px rgba(6,182,212,0.08);">
+            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-teal-400/20 rounded-full blur-lg"></div>
+            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-rose-400/15 rounded-full blur-lg"></div>
             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Total Generated</p>
             <div class="relative z-10">
               <span class="text-[10px] font-semibold text-slate-400">PKR </span>
@@ -289,17 +289,17 @@
           </div>
 
           <!-- Total Tickets -->
-          <div class="glass-panel p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-sky-400/15 rounded-full blur-lg"></div>
-            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-pink-400/10 rounded-full blur-lg"></div>
+          <div class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl" style="background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.12)); border: 1px solid rgba(59,130,246,0.25); box-shadow: 0 4px 20px rgba(59,130,246,0.08);">
+            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-blue-400/20 rounded-full blur-lg"></div>
+            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-pink-400/15 rounded-full blur-lg"></div>
             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Total Tickets</p>
             <span class="text-2xl font-black text-blue-600 relative z-10">{totalTickets}</span>
           </div>
           
           <!-- Pending Bonus -->
-          <div class="glass-panel p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-rose-400/15 rounded-full blur-lg"></div>
-            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-amber-400/10 rounded-full blur-lg"></div>
+          <div class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl" style="background: linear-gradient(135deg, rgba(244,63,94,0.15), rgba(245,158,11,0.1)); border: 1px solid rgba(244,63,94,0.25); box-shadow: 0 4px 20px rgba(244,63,94,0.08);">
+            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-rose-400/20 rounded-full blur-lg"></div>
+            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-amber-400/15 rounded-full blur-lg"></div>
             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pending Bonus</p>
             <div class="relative z-10">
               <span class="text-[10px] font-semibold text-slate-400">PKR </span>
@@ -308,7 +308,7 @@
           </div>
           
           <!-- Paid Bonus -->
-          <div class="bg-gradient-to-br from-emerald-500 to-teal-700 p-5 rounded-2xl shadow-lg shadow-emerald-500/20 border border-emerald-500/50 text-white relative overflow-hidden flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300">
+          <div class="p-5 rounded-2xl text-white relative overflow-hidden flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300" style="background: linear-gradient(135deg, rgba(16,185,129,0.75), rgba(5,150,105,0.75)); border: 1px solid rgba(16,185,129,0.4); box-shadow: 0 8px 24px rgba(16,185,129,0.25);">
             <div class="absolute right-[-20%] top-[-20%] w-32 h-32 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
             <div class="absolute left-0 bottom-0 w-24 h-24 bg-rose-400/20 rounded-full blur-xl"></div>
             <div class="relative z-10">
