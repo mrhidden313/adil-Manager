@@ -31,7 +31,7 @@
   {/if}
 
 
-<div class="md:hidden fixed bottom-0 left-0 w-full h-16 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-40 flex items-center justify-around px-2 pb-safe">
+<div class="md:hidden fixed bottom-0 left-0 w-full h-16 bg-white/40 backdrop-blur-xl border-t border-white/50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-40 flex items-center justify-around px-2 pb-safe">
   
   {#if role === 'MANAGER'}
     <button onclick={() => window.location.href = '/manager'} class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-indigo-600 {currentPath === '/manager' ? 'text-indigo-600' : ''}">
