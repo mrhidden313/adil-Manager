@@ -1,28 +1,37 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 
 @theme {
   --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
-  
   html {
     font-family: 'Outfit', sans-serif;
     scroll-behavior: smooth;
   }
-  
   body {
-    @apply bg-slate-50 text-slate-900;
+    background-color: #f8fafc;
+    color: #0f172a;
   }
 }
 
 @layer utilities {
   .glass-card {
-    @apply bg-white/70 backdrop-blur-xl border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl;
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(203, 213, 225, 0.8);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+    border-radius: 1.5rem;
   }
   .glass-panel {
-    @apply bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_4px_24px_rgb(0,0,0,0.02)] rounded-2xl;
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(203, 213, 225, 0.8);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+    border-radius: 1rem;
   }
   .animate-stagger {
     animation: fadeSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;

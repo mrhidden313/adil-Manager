@@ -272,33 +272,52 @@
 
         <!-- Top Stats -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 animate-stagger" style="animation-delay: 200ms;">
+
+          <!-- Total Sales -->
           <div class="glass-panel p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-emerald-500/10 rounded-bl-full group-hover:scale-110 transition-transform"></div>
-            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Sales</p>
-            <p class="text-3xl font-black text-slate-900">PKR {totalSales.toLocaleString()}</p>
+            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-teal-400/15 rounded-full blur-lg"></div>
+            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-rose-400/10 rounded-full blur-lg"></div>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Total Sales</p>
+            <div class="relative z-10">
+              <span class="text-[10px] font-semibold text-slate-400">PKR </span>
+              <span class="text-2xl font-black text-slate-900">{totalSales.toLocaleString()}</span>
+            </div>
             <p class="text-xs text-emerald-600 font-bold mt-2">{totalOrders} Orders</p>
           </div>
 
+          <!-- Total Tickets -->
           <div class="glass-panel p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/10 rounded-bl-full group-hover:scale-110 transition-transform"></div>
-            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Tickets</p>
-            <p class="text-3xl font-black text-blue-600">{totalTickets}</p>
+            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-sky-400/15 rounded-full blur-lg"></div>
+            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-pink-400/10 rounded-full blur-lg"></div>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Total Tickets</p>
+            <span class="text-2xl font-black text-blue-600 relative z-10">{totalTickets}</span>
           </div>
           
+          <!-- Pending Bonus -->
           <div class="glass-panel p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-amber-500/10 rounded-bl-full group-hover:scale-110 transition-transform"></div>
-            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pending Bonus (10%)</p>
-            <p class="text-3xl font-black text-amber-600">PKR {pendingBonus.toLocaleString()}</p>
+            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-amber-400/15 rounded-full blur-lg"></div>
+            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-rose-400/10 rounded-full blur-lg"></div>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pending Bonus (10%)</p>
+            <div class="relative z-10">
+              <span class="text-[10px] font-semibold text-slate-400">PKR </span>
+              <span class="text-2xl font-black text-amber-600">{pendingBonus.toLocaleString()}</span>
+            </div>
           </div>
           
+          <!-- Paid Bonus -->
           <div class="bg-gradient-to-br from-indigo-600 to-purple-700 p-5 rounded-2xl shadow-lg shadow-indigo-500/20 border border-indigo-500/50 text-white relative overflow-hidden flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300">
             <div class="absolute right-[-20%] top-[-20%] w-32 h-32 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
+            <div class="absolute left-0 bottom-0 w-24 h-24 bg-rose-400/20 rounded-full blur-xl"></div>
             <div class="relative z-10">
-              <p class="text-xs font-bold text-indigo-200 uppercase tracking-wider mb-1">Total Paid Bonus</p>
-              <p class="text-3xl font-black">PKR {paidBonus.toLocaleString()}</p>
+              <p class="text-[10px] font-bold text-indigo-200 uppercase tracking-wider mb-1">Total Paid Bonus</p>
+              <div>
+                <span class="text-[10px] font-semibold text-indigo-200">PKR </span>
+                <span class="text-2xl font-black">{paidBonus.toLocaleString()}</span>
+              </div>
             </div>
-            <p class="text-xs text-indigo-100 font-medium mt-2 relative z-10">Total cash received</p>
+            <p class="text-[10px] text-indigo-100 font-medium mt-2 relative z-10">Total cash received</p>
           </div>
+
         </div>
 
 

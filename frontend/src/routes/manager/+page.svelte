@@ -273,38 +273,53 @@
     <!-- Page Content -->
     <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
       <div class="max-w-6xl mx-auto space-y-6">
-        
-        <!-- Top Cinematic Stats -->
+                <!-- Top Cinematic Stats -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 animate-stagger" style="animation-delay: 100ms;">
+
+          <!-- Total Generated -->
           <div class="glass-panel p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-indigo-500/10 rounded-bl-full group-hover:scale-110 transition-transform"></div>
-            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Generated</p>
-            <p class="text-3xl font-black text-slate-900">PKR {totalAmount.toLocaleString()}</p>
+            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-teal-400/15 rounded-full blur-lg"></div>
+            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-rose-400/10 rounded-full blur-lg"></div>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Total Generated</p>
+            <div class="relative z-10">
+              <span class="text-[10px] font-semibold text-slate-400">PKR </span>
+              <span class="text-2xl font-black text-slate-900">{totalAmount.toLocaleString()}</span>
+            </div>
             <p class="text-xs text-indigo-600 font-bold mt-2">{totalOrders} Orders</p>
           </div>
 
+          <!-- Total Tickets -->
           <div class="glass-panel p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-blue-500/10 rounded-bl-full group-hover:scale-110 transition-transform"></div>
-            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Tickets</p>
-            <p class="text-3xl font-black text-blue-600">{totalTickets}</p>
-            <p class="text-xs text-slate-500 font-medium mt-2">Tickets sold</p>
+            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-sky-400/15 rounded-full blur-lg"></div>
+            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-pink-400/10 rounded-full blur-lg"></div>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Total Tickets</p>
+            <span class="text-2xl font-black text-blue-600 relative z-10">{totalTickets}</span>
           </div>
           
+          <!-- Pending Bonus -->
           <div class="glass-panel p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-            <div class="absolute right-0 top-0 w-24 h-24 bg-rose-500/10 rounded-bl-full group-hover:scale-110 transition-transform"></div>
-            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pending Bonus</p>
-            <p class="text-3xl font-black text-rose-600">PKR {totalBonusPending.toLocaleString()}</p>
-            <p class="text-xs text-slate-500 font-medium mt-2">To be paid to agents</p>
+            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-rose-400/15 rounded-full blur-lg"></div>
+            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-amber-400/10 rounded-full blur-lg"></div>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pending Bonus</p>
+            <div class="relative z-10">
+              <span class="text-[10px] font-semibold text-slate-400">PKR </span>
+              <span class="text-2xl font-black text-rose-600">{totalBonusPending.toLocaleString()}</span>
+            </div>
           </div>
           
+          <!-- Paid Bonus -->
           <div class="bg-gradient-to-br from-emerald-500 to-teal-700 p-5 rounded-2xl shadow-lg shadow-emerald-500/20 border border-emerald-500/50 text-white relative overflow-hidden flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300">
             <div class="absolute right-[-20%] top-[-20%] w-32 h-32 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
+            <div class="absolute left-0 bottom-0 w-24 h-24 bg-rose-400/20 rounded-full blur-xl"></div>
             <div class="relative z-10">
-              <p class="text-xs font-bold text-emerald-100 uppercase tracking-wider mb-1">Total Paid Bonus</p>
-              <p class="text-3xl font-black">PKR {totalBonusPaid.toLocaleString()}</p>
+              <p class="text-[10px] font-bold text-emerald-100 uppercase tracking-wider mb-1">Total Paid Bonus</p>
+              <div>
+                <span class="text-[10px] font-semibold text-emerald-200">PKR </span>
+                <span class="text-2xl font-black">{totalBonusPaid.toLocaleString()}</span>
+              </div>
             </div>
-            <p class="text-xs text-emerald-100 font-medium mt-2">Total payouts processed</p>
           </div>
+
         </div>
 
         <!-- Main Tabs: Orders vs Payouts -->
