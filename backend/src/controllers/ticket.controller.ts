@@ -145,9 +145,15 @@ export const updateTicketStatus = async (req: AuthRequest, res: Response): Promi
 
     const updateData: any = { status };
     
-    if (assignedToId && (role === 'MANAGER' || role === 'SUPER_ADMIN')) {
-      updateData.assignedToId = assignedToId;
-      updateData.approvedById = userId;
+    if (role === 'MANAGER' || role === 'SUPER_ADMIN') {
+      if (assignedToId !== undefined) {
+        updateData.assignedToId = assignedToId || null;
+      }
+      if (status === 'PENDING') {
+        updateData.assignedToId = null;
+      } else if (updateData.assignedToId) {
+        updateData.approvedById = userId;
+      }
     }
 
     if (role === 'FULFILLMENT') {

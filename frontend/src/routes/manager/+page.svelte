@@ -106,8 +106,9 @@
     showTicketModal = true;
   }
 
-  async function updateStatus(status: string) {
-    if (status === 'APPROVED' && !assignToId) {
+  async function updateStatus(status: string, overrideAssignTo?: string | null) {
+    const targetAssign = overrideAssignTo !== undefined ? overrideAssignTo : assignToId;
+    if (status === 'APPROVED' && !targetAssign) {
       return toast.add('Please select a local agent to assign this ticket to.', 'error');
     }
     isSubmitting = true;
@@ -116,12 +117,15 @@
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/tickets/${selectedTicket.id}/status`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, assignedToId: status === 'APPROVED' ? assignToId : undefined })
+        body: JSON.stringify({ 
+          status, 
+          assignedToId: status === 'APPROVED' ? targetAssign : (status === 'PENDING' ? null : undefined) 
+        })
       });
       if (res.ok) {
         showTicketModal = false;
         fetchData();
-        toast.add('Status updated', 'success');
+        toast.add(status === 'PENDING' ? 'Order restored to Pending successfully!' : 'Status updated', 'success');
       } else {
         toast.add('Failed to update', 'error');
       }
@@ -346,9 +350,10 @@
 
         {#if activeTab === 'ORDERS'}
           <div class="flex space-x-4 mb-4 overflow-x-auto pb-2 animate-stagger" style="animation-delay: 200ms;">
-            <button onclick={() => ordersTab = 'PENDING'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'PENDING' ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Pending Approval</button>
-            <button onclick={() => ordersTab = 'APPROVED'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'APPROVED' ? 'bg-indigo-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Approved</button>
-            <button onclick={() => ordersTab = 'COMPLETED'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'COMPLETED' ? 'bg-emerald-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Completed</button>
+            <button onclick={() => ordersTab = 'PENDING'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'PENDING' ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Pending Approval ({tickets.filter(t => t.status === 'PENDING').length})</button>
+            <button onclick={() => ordersTab = 'APPROVED'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'APPROVED' ? 'bg-indigo-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Approved ({tickets.filter(t => t.status === 'APPROVED').length})</button>
+            <button onclick={() => ordersTab = 'COMPLETED'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'COMPLETED' ? 'bg-emerald-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Completed ({tickets.filter(t => t.status === 'COMPLETED').length})</button>
+            <button onclick={() => ordersTab = 'REJECTED'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'REJECTED' ? 'bg-rose-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Rejected ({tickets.filter(t => t.status === 'REJECTED').length})</button>
           </div>
 
           <div class="space-y-4">
@@ -369,6 +374,14 @@
                   <p class="font-bold text-slate-800 text-lg truncate w-[200px] sm:w-[300px] md:w-auto">{ticket.genericData?.name || ticket.transactionId}</p>
                   <p class="text-xs font-medium text-slate-500 mt-1">By: {ticket.createdBy?.name}</p>
                 </div>
+                {#if ticket.status === 'REJECTED' || ticket.status === 'APPROVED'}
+                  <div class="flex items-center gap-2 pl-4 sm:pl-0" onclick={(e) => { e.stopPropagation(); selectedTicket = ticket; updateStatus('PENDING', null); }}>
+                    <button class="px-3 py-2 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1.5 {ticket.status === 'REJECTED' ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200'} shadow-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                      <span>{ticket.status === 'REJECTED' ? 'Restore Order' : 'Unassign / Restore'}</span>
+                    </button>
+                  </div>
+                {/if}
               </div>
             {/each}
           </div>
@@ -506,6 +519,16 @@
               {/each}
             </select>
           </div>
+        {:else if selectedTicket.status === 'APPROVED'}
+          <div class="mb-2 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+            <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Change Assignment / Reassign Agent</span>
+            <select bind:value={assignToId} class="block w-full rounded-xl border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-medium p-3 outline-none">
+              <option value="">-- Select New Agent --</option>
+              {#each fulfillmentAgents as agent}
+                <option value={agent.id}>{agent.name}</option>
+              {/each}
+            </select>
+          </div>
         {/if}
       </div>
       
@@ -513,6 +536,26 @@
         <div class="p-6 border-t border-slate-100 bg-white flex space-x-3">
           <button onclick={() => updateStatus('REJECTED')} disabled={isSubmitting} class="flex-1 bg-rose-50 border border-rose-200 text-rose-700 font-bold py-3 px-4 rounded-xl hover:bg-rose-100 disabled:opacity-50 transition-colors">Reject</button>
           <button onclick={() => updateStatus('APPROVED')} disabled={isSubmitting || (fulfillmentAgents.length === 0)} class="flex-1 bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors">{isSubmitting ? 'Approving...' : 'Approve'}</button>
+        </div>
+      {:else if selectedTicket.status === 'REJECTED'}
+        <div class="p-6 border-t border-slate-100 bg-white flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <span class="text-xs font-bold text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">This order was rejected.</span>
+          <button onclick={() => updateStatus('PENDING', null)} disabled={isSubmitting} class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-sm transition-colors flex items-center justify-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span>Restore to Pending</span>
+          </button>
+        </div>
+      {:else if selectedTicket.status === 'APPROVED'}
+        <div class="p-6 border-t border-slate-100 bg-white flex flex-col sm:flex-row gap-3">
+          <button onclick={() => updateStatus('PENDING', null)} disabled={isSubmitting} class="flex-1 bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 font-bold py-3 px-4 rounded-xl transition-colors flex items-center justify-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span>Restore to Pending</span>
+          </button>
+          {#if assignToId}
+            <button onclick={() => updateStatus('APPROVED', assignToId)} disabled={isSubmitting} class="flex-1 bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-indigo-700 transition-colors">
+              {isSubmitting ? 'Reassigning...' : 'Reassign Agent'}
+            </button>
+          {/if}
         </div>
       {/if}
     </div>
