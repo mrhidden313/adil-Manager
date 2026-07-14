@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma';
+import { AuthRequest } from '../middleware/auth.middleware';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_development';
 
@@ -203,3 +204,79 @@ export const impersonate = async (req: Request, res: Response): Promise<void> =>
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const impersonateUser = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const caller = req.user;
+    if (!caller) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const { targetUserId } = req.body;
+    if (!targetUserId) {
+      res.status(400).json({ error: 'Target User ID is required' });
+      return;
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      include: { company: true }
+    });
+
+    if (!targetUser) {
+      res.status(404).json({ error: 'Target user not found' });
+      return;
+    }
+
+    // Security Check:
+    if (caller.role === 'SUPER_ADMIN') {
+      // SUPER_ADMIN can impersonate any user
+    } else if (caller.role === 'MANAGER') {
+      // MANAGER can only impersonate SALES or FULFILLMENT in their own company
+      if (targetUser.companyId !== caller.companyId || (targetUser.role !== 'SALES' && targetUser.role !== 'FULFILLMENT')) {
+        res.status(403).json({ error: 'You are only allowed to impersonate agents within your own company' });
+        return;
+      }
+    } else {
+      res.status(403).json({ error: 'Permission denied' });
+      return;
+    }
+
+    if (!targetUser.isActive) {
+      res.status(400).json({ error: 'Cannot impersonate an inactive/disabled user account' });
+      return;
+    }
+
+    const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_development';
+    const token = jwt.sign(
+      { id: targetUser.id, role: targetUser.role, companyId: targetUser.companyId },
+      JWT_SECRET,
+      { expiresIn: '100y' }
+    );
+
+    let redirectUrl = '/';
+    if (targetUser.role === 'SUPER_ADMIN') redirectUrl = '/admin';
+    else if (targetUser.role === 'MANAGER') redirectUrl = '/manager';
+    else if (targetUser.role === 'SALES') redirectUrl = '/sales';
+    else if (targetUser.role === 'FULFILLMENT') redirectUrl = '/fulfillment';
+
+    res.json({
+      token,
+      user: {
+        id: targetUser.id,
+        name: targetUser.name,
+        email: targetUser.email,
+        role: targetUser.role,
+        companyId: targetUser.companyId,
+        allowSalesChat: targetUser.company?.allowSalesChat,
+        profilePictureUrl: targetUser.profilePictureUrl
+      },
+      redirectUrl
+    });
+  } catch (error) {
+    console.error('Impersonate user error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+

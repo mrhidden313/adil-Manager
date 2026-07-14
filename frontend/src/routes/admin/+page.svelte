@@ -145,6 +145,29 @@
     }
   }
 
+  async function impersonateUserAccount(targetUserId: string) {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/impersonate-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ targetUserId })
+      });
+      if (res.status === 401) { localStorage.clear(); window.location.href='/'; return; }
+      if (!res.ok) {
+        const err = await res.json();
+        toast.add(err.error || 'Failed to impersonate account', 'error');
+        return;
+      }
+      const data = await res.json();
+      const userStr = JSON.stringify(data.user);
+      window.open(`/auth-callback?token=${encodeURIComponent(data.token)}&user=${encodeURIComponent(userStr)}&redirect=${encodeURIComponent(data.redirectUrl)}`, '_blank');
+      toast.add(`Opened ${data.user.name}'s cockpit in a new tab!`, 'success');
+    } catch (error) {
+      toast.add('Network error during auto-login', 'error');
+    }
+  }
+
   function getStatusBadge(status: string) {
     switch(status) {
       case 'TRIAL': return 'bg-amber-100 text-amber-700 border-amber-200';
@@ -348,6 +371,12 @@
                       <button onclick={() => viewUsers(comp)} class="flex-1 py-2 text-xs font-bold text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">
                         View Staff
                       </button>
+                      {#if comp.users[0]?.id}
+                        <button onclick={() => impersonateUserAccount(comp.users[0].id)} class="flex-1 py-2 text-xs font-bold text-white bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-lg hover:opacity-90 transition-all shadow-sm flex items-center justify-center gap-1.5" title="Direct auto-login as agency Manager">
+                          <span>⚡</span>
+                          <span>Login as Manager</span>
+                        </button>
+                      {/if}
                     </div>
 
                     {#if comp.planStatus === 'ACTIVE'}
@@ -469,6 +498,7 @@
                 <th class="px-8 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Role</th>
                 <th class="px-8 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
                 <th class="px-8 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Joined</th>
+                <th class="px-8 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider">Action</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-slate-100">
@@ -506,6 +536,16 @@
                   </td>
                   <td class="px-8 py-4 whitespace-nowrap text-xs font-medium text-slate-500">
                     {new Date(user.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                  </td>
+                  <td class="px-8 py-4 whitespace-nowrap">
+                    <button
+                      onclick={() => impersonateUserAccount(user.id)}
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 text-white font-bold text-xs shadow-md hover:scale-105 transition-all cursor-pointer border border-white/20"
+                      title={`Auto-login as ${user.name}`}
+                    >
+                      <span>⚡</span>
+                      <span>Login as {user.role === 'MANAGER' ? 'Manager' : 'User'}</span>
+                    </button>
                   </td>
                 </tr>
               {/each}

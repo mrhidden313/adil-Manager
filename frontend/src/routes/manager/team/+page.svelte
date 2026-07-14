@@ -117,6 +117,30 @@
     }
   }
 
+  async function impersonateUserAccount(targetUserId: string, e?: Event) {
+    if (e) e.stopPropagation();
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/impersonate-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ targetUserId })
+      });
+      if (res.status === 401) { localStorage.clear(); window.location.href='/'; return; }
+      if (!res.ok) {
+        const err = await res.json();
+        toast.add(err.error || 'Failed to impersonate account', 'error');
+        return;
+      }
+      const data = await res.json();
+      const userStr = JSON.stringify(data.user);
+      window.open(`/auth-callback?token=${encodeURIComponent(data.token)}&user=${encodeURIComponent(userStr)}&redirect=${encodeURIComponent(data.redirectUrl)}`, '_blank');
+      toast.add(`Opened ${data.user.name}'s cockpit in a new tab!`, 'success');
+    } catch (error) {
+      toast.add('Network error during auto-login', 'error');
+    }
+  }
+
   function openAgentStats(agent: any) {
     selectedAgent = agent;
     payBonusAmount = '';
@@ -340,6 +364,10 @@
                 </div>
                 <div class="px-5 py-4 border-t border-slate-100 bg-white space-y-2">
                   <div class="w-full py-2.5 text-xs font-bold text-center text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg shadow-sm">View Agent History</div>
+                  <button onclick={(e) => impersonateUserAccount(member.id, e)} class="w-full py-2.5 text-xs font-bold text-white bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-lg shadow-sm flex items-center justify-center gap-1.5 hover:opacity-90 transition-all cursor-pointer" title="Direct auto-login as User">
+                    <span>⚡</span>
+                    <span>Login as User</span>
+                  </button>
                   {#if member.isActive}
                     <button onclick={(e) => toggleStatus(member.id, member.isActive, e)} class="w-full py-2.5 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-colors shadow-sm">Disable Agent Access</button>
                   {:else}
