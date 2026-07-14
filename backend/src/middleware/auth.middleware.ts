@@ -7,6 +7,8 @@ export interface AuthRequest extends Request {
     id: string;
     role: Role;
     companyId?: string | null;
+    name?: string;
+    email?: string;
   };
 }
 
@@ -40,7 +42,11 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
       return;
     }
 
-    req.user = decoded;
+    req.user = {
+      ...decoded,
+      name: userExists.name || undefined,
+      email: userExists.email || undefined
+    };
     next();
   } catch (error) {
     res.status(401).json({ error: 'Unauthorized: Invalid token' });
