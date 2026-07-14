@@ -3,6 +3,7 @@
   import { toast } from '$lib/stores/toast';
   import { io, Socket } from 'socket.io-client';
   import { subscribeToPush } from '$lib/utils/push';
+  import { ripple } from '$lib/actions/ripple';
   import BottomNav from '$lib/components/BottomNav.svelte';
   import ProfileModal from '$lib/components/ProfileModal.svelte';
 
@@ -207,24 +208,50 @@
 <div class="flex h-screen bg-slate-50 font-sans overflow-hidden">
   
   <!-- Sidebar -->
-  <aside class="w-72 bg-slate-900 text-slate-300 hidden md:flex flex-col border-r border-slate-800 shrink-0 shadow-xl z-10 relative">
-    <div class="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-950">
+  <!-- Sidebar -->
+  <aside class="w-72 liquid-sidebar text-slate-300 hidden md:flex flex-col shadow-2xl z-10 relative shrink-0">
+    <div class="h-16 flex items-center justify-between px-6 border-b border-slate-800/80 bg-slate-950/80">
       <div class="flex items-center space-x-3">
-        <button onclick={() => window.history.back()} class="p-1 hover:bg-slate-800 rounded-full transition-colors">
+        <button onclick={() => window.history.back()} class="p-1 hover:bg-slate-800/80 rounded-full transition-colors text-slate-400 hover:text-white">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
         </button>
         <h1 class="text-xl font-bold text-white tracking-tight">Team Chat</h1>
       </div>
     </div>
     
-    <div class="flex-1 overflow-y-auto py-4">
-      <div class="px-4 mb-2">
-        <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Channels</h2>
+    <div class="flex-1 overflow-y-auto py-4 px-3 space-y-4">
+      <!-- Universal Navigation inside Chat Sidebar -->
+      <div class="space-y-1.5">
+        <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-3">Navigation</div>
+        <button use:ripple class="w-full flex items-center space-x-3 liquid-glass-btn text-slate-300 px-3.5 py-2 rounded-xl font-medium text-sm" onclick={() => {
+          if (currentUser?.role === 'MANAGER' || currentUser?.role === 'SUPER_ADMIN') window.location.href = '/manager';
+          else if (currentUser?.role === 'FULFILLMENT') window.location.href = '/fulfillment';
+          else if (currentUser?.role === 'SALES') window.location.href = '/sales';
+          else window.location.href = '/';
+        }}>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          <span>Dashboard / Overview</span>
+        </button>
+        {#if currentUser?.role === 'MANAGER' || currentUser?.role === 'SUPER_ADMIN'}
+          <button use:ripple class="w-full flex items-center space-x-3 liquid-glass-btn text-slate-300 px-3.5 py-2 rounded-xl font-medium text-sm" onclick={() => window.location.href = '/manager/team'}>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <span>Staff Management</span>
+          </button>
+        {/if}
+        <button use:ripple class="w-full flex items-center space-x-3 liquid-glass-btn active px-3.5 py-2 rounded-xl font-medium text-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+          <span>Team Chat</span>
+        </button>
+      </div>
+
+      <div class="border-t border-slate-800/60 pt-3">
+        <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-3">Channels</h2>
         <button 
+          use:ripple
           onclick={() => activeChannel = 'group'}
-          class="w-full flex items-center px-3 py-2.5 rounded-xl transition-all {activeChannel === 'group' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'hover:bg-slate-800'}"
+          class="w-full flex items-center px-3 py-2 rounded-xl transition-all {activeChannel === 'group' ? 'liquid-glass-btn active' : 'liquid-glass-btn text-slate-300'}"
         >
-          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center mr-3 text-indigo-100 font-bold">
+          <div class="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center mr-3 text-indigo-300 font-bold text-xs">
             #
           </div>
           <span class="font-bold text-sm">Company General</span>
@@ -232,23 +259,23 @@
       </div>
 
       <!-- Team Members List -->
-      <div class="px-4 mt-6 mb-2">
-        <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Team Members ({users.length})</h2>
+      <div class="border-t border-slate-800/60 pt-3">
+        <h2 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-3">Team Members ({users.length})</h2>
         <div class="space-y-1">
           {#each users as user}
-            <div class="flex items-center px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors cursor-default">
-              <div class="relative w-8 h-8 rounded-full overflow-hidden bg-slate-700 flex-shrink-0 mr-3">
+            <div class="flex items-center px-3 py-1.5 rounded-xl hover:bg-slate-800/60 transition-colors cursor-default">
+              <div class="relative w-7 h-7 rounded-full overflow-hidden bg-slate-700 flex-shrink-0 mr-2.5 border border-slate-600/50">
                 {#if user.profilePictureUrl}
                   <img src={user.profilePictureUrl} alt={user.name} class="w-full h-full object-cover" />
                 {:else}
-                  <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-slate-300">
+                  <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-slate-300">
                     {user.name.substring(0,2).toUpperCase()}
                   </span>
                 {/if}
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-slate-300 truncate">{user.name}</p>
-                <p class="text-[10px] text-slate-500 uppercase tracking-wider truncate">{user.role}</p>
+                <p class="text-xs font-medium text-slate-200 truncate">{user.name}</p>
+                <p class="text-[9px] text-slate-400 uppercase tracking-wider truncate">{user.role}</p>
               </div>
             </div>
           {/each}
@@ -258,18 +285,23 @@
     </div>
     
     {#if currentUser}
-    <div class="p-4 border-t border-slate-800 bg-slate-950/50 flex items-center space-x-3">
-      <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center">
-        {#if currentUser.profilePictureUrl}
-          <img src={currentUser.profilePictureUrl} alt="Avatar" class="w-full h-full object-cover"/>
-        {:else}
-          <span class="text-slate-300 font-bold">{currentUser.name.substring(0, 2).toUpperCase()}</span>
-        {/if}
+    <div class="p-3 border-t border-slate-800/80 bg-slate-950/80 flex items-center justify-between">
+      <div class="flex items-center space-x-2.5 min-w-0">
+        <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center shrink-0">
+          {#if currentUser.profilePictureUrl}
+            <img src={currentUser.profilePictureUrl} alt="Avatar" class="w-full h-full object-cover"/>
+          {:else}
+            <span class="text-slate-300 font-bold text-xs">{currentUser.name.substring(0, 2).toUpperCase()}</span>
+          {/if}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-bold text-white truncate">{currentUser.name}</p>
+          <p class="text-[10px] text-indigo-400 truncate">{currentUser.role}</p>
+        </div>
       </div>
-      <div class="flex-1 min-w-0">
-        <p class="text-sm font-bold text-white truncate">{currentUser.name}</p>
-        <p class="text-xs text-indigo-400 truncate">{currentUser.role}</p>
-      </div>
+      <button onclick={() => showProfileModal = true} title="Profile Settings" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      </button>
     </div>
     {/if}
   </aside>
