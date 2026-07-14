@@ -1,11 +1,15 @@
 <script lang="ts">
   import '../app.css';
   import Toast from '$lib/components/Toast.svelte';
+  import { systemLogs } from '$lib/stores/systemLogs';
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { fade } from 'svelte/transition';
 
   onMount(async () => {
+    // Initialize global live logs & socket sync on every user's device
+    systemLogs.initGlobalSocket();
+
     // Only register Service Worker if supported
     if ('serviceWorker' in navigator) {
       try {

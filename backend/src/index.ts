@@ -60,6 +60,12 @@ io.on('connection', (socket) => {
     console.log(`Socket ${socket.id} joined company ${companyId}`);
   });
 
+  socket.on('global_client_log', (data) => {
+    if (data && data.companyId) {
+      io.to(`company_${data.companyId}`).emit('global_log_broadcast', data);
+    }
+  });
+
 
 
 

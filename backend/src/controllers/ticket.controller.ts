@@ -3,6 +3,7 @@ import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { supabase } from '../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
+import { io } from '../socket';
 
 export const createTicket = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -44,6 +45,13 @@ export const createTicket = async (req: AuthRequest, res: Response): Promise<voi
 
     if (uploadError) {
       console.error('Supabase upload error:', uploadError);
+      io.to(`company_${companyId}`).emit('global_log_broadcast', {
+        type: 'ERROR',
+        userName: req.user?.name || 'Sales Agent',
+        userRole: req.user?.role || 'SALES',
+        message: `Upload Failed: TXN #${transactionId} (Supabase Error)`,
+        details: uploadError?.message || 'Storage error while uploading proof'
+      });
       res.status(500).json({ error: 'Failed to upload image' });
       return;
     }
@@ -87,6 +95,14 @@ export const createTicket = async (req: AuthRequest, res: Response): Promise<voi
         action: 'CREATED',
         newStatus: 'PENDING'
       }
+    });
+
+    io.to(`company_${companyId}`).emit('global_log_broadcast', {
+      type: 'SUCCESS',
+      userName: req.user?.name || 'Sales Agent',
+      userRole: req.user?.role || 'SALES',
+      message: `New Order Submitted: TXN #${transactionId} (${ticketPrice} PKR)`,
+      details: `Proof uploaded successfully. Order #${ticket.id.substring(0, 8)} created.`
     });
 
     res.status(201).json({ message: 'Ticket created', ticket });
@@ -174,6 +190,13 @@ export const updateTicketStatus = async (req: AuthRequest, res: Response): Promi
 
         if (uploadError) {
           console.error('Supabase upload error:', uploadError);
+          io.to(`company_${existingTicket.companyId}`).emit('global_log_broadcast', {
+            type: 'ERROR',
+            userName: req.user?.name || 'Local Agent',
+            userRole: req.user?.role || 'FULFILLMENT',
+            message: `Proof Upload Failed for Order #${existingTicket.transactionId}`,
+            details: uploadError?.message || 'Supabase storage upload error'
+          });
           res.status(500).json({ error: 'Failed to upload video proof' });
           return;
         }
@@ -201,6 +224,14 @@ export const updateTicketStatus = async (req: AuthRequest, res: Response): Promi
         previousStatus: existingTicket.status,
         newStatus: updatedTicket.status
       }
+    });
+
+    io.to(`company_${updatedTicket.companyId}`).emit('global_log_broadcast', {
+      type: updatedTicket.status === 'REJECTED' ? 'WARNING' : 'SUCCESS',
+      userName: req.user?.name || 'Agent',
+      userRole: req.user?.role || role,
+      message: `Order Status Changed to ${updatedTicket.status} (TXN #${existingTicket.transactionId})`,
+      details: `Updated by ${req.user?.name || role}. Order ID: #${updatedTicket.id.substring(0, 8)}`
     });
 
     res.json({ message: 'Ticket updated', ticket: updatedTicket });
