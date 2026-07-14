@@ -80,15 +80,25 @@ export const listPayouts = async (req: AuthRequest, res: Response): Promise<void
 
     let payouts;
 
-    if (role === 'MANAGER' || role === 'SUPER_ADMIN') {
+    if (role === 'SUPER_ADMIN') {
+      const whereClause = (companyIdStr && companyIdStr !== 'null') ? { companyId: companyIdStr } : {};
       payouts = await prisma.payout.findMany({
-        where: { companyId: companyIdStr },
+        where: whereClause,
+        include: { agent: { select: { name: true, email: true } }, tickets: { select: { id: true, transactionId: true, price: true } } },
+        orderBy: { createdAt: 'desc' }
+      });
+    } else if (role === 'MANAGER') {
+      const whereClause = (companyIdStr && companyIdStr !== 'null') ? { companyId: companyIdStr } : {};
+      payouts = await prisma.payout.findMany({
+        where: whereClause,
         include: { agent: { select: { name: true, email: true } }, tickets: { select: { id: true, transactionId: true, price: true } } },
         orderBy: { createdAt: 'desc' }
       });
     } else {
+      const whereClause: any = { agentId: userId };
+      if (companyIdStr && companyIdStr !== 'null') whereClause.companyId = companyIdStr;
       payouts = await prisma.payout.findMany({
-        where: { agentId: userId, companyId: companyIdStr },
+        where: whereClause,
         include: { tickets: { select: { id: true, transactionId: true, price: true } } },
         orderBy: { createdAt: 'desc' }
       });

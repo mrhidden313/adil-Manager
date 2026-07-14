@@ -32,14 +32,24 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
 
 export const getMyTeam = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const companyId = req.user?.companyId;
-    if (!companyId) {
+    const { role, companyId } = req.user!;
+    if (role === 'SUPER_ADMIN' && (!companyId || companyId === 'null')) {
+      const allTeam = await prisma.user.findMany({
+        where: { role: { in: ['SALES', 'FULFILLMENT', 'MANAGER'] } },
+        select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true, profilePictureUrl: true, paymentAccountType: true, paymentAccountNumber: true, companyId: true },
+        orderBy: { createdAt: 'desc' }
+      });
+      res.json(allTeam);
+      return;
+    }
+    if (!companyId || companyId === 'null') {
       res.status(400).json({ error: 'Manager has no company' });
       return;
     }
     const team = await prisma.user.findMany({
       where: { companyId },
-      select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true, profilePictureUrl: true, paymentAccountType: true, paymentAccountNumber: true }
+      select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true, profilePictureUrl: true, paymentAccountType: true, paymentAccountNumber: true, companyId: true },
+      orderBy: { createdAt: 'desc' }
     });
     res.json(team);
   } catch (error) {
