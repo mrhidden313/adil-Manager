@@ -104,7 +104,8 @@ export const listTickets = async (req: AuthRequest, res: Response): Promise<void
     const companyIdStr = companyId as string;
 
     const includeData = { 
-      createdBy: { select: { name: true, role: true, email: true } }
+      createdBy: { select: { name: true, role: true, email: true } },
+      assignedTo: { select: { name: true, role: true, email: true } }
     };
 
     if (role === 'SUPER_ADMIN') {

@@ -370,9 +370,20 @@
                     {#if ticket.genericData?.ticketNumber}
                       <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-amber-50 text-amber-700 border-amber-200">🎫 {ticket.genericData.ticketNumber} tickets</span>
                     {/if}
+                    {#if ticket.assignedTo}
+                      <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-indigo-50 text-indigo-700 border-indigo-200 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        <span>Assigned to: {ticket.assignedTo.name}</span>
+                      </span>
+                    {/if}
                   </div>
                   <p class="font-bold text-slate-800 text-lg truncate w-[200px] sm:w-[300px] md:w-auto">{ticket.genericData?.name || ticket.transactionId}</p>
-                  <p class="text-xs font-medium text-slate-500 mt-1">By: {ticket.createdBy?.name}</p>
+                  <div class="flex items-center gap-3 mt-1 text-xs font-medium text-slate-500 flex-wrap">
+                    <span>By: {ticket.createdBy?.name}</span>
+                    {#if ticket.assignedTo}
+                      <span class="text-indigo-600 font-semibold">• Assigned Agent: {ticket.assignedTo.name}</span>
+                    {/if}
+                  </div>
                 </div>
                 {#if ticket.status === 'REJECTED' || ticket.status === 'APPROVED'}
                   <div class="flex items-center gap-2 pl-4 sm:pl-0" onclick={(e) => { e.stopPropagation(); selectedTicket = ticket; updateStatus('PENDING', null); }}>
@@ -468,6 +479,12 @@
               <div>
                 <span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Payment Method</span>
                 <span class="text-slate-800 font-semibold">{selectedTicket.genericData.paymentMethod} {selectedTicket.genericData.bankType ? `(${selectedTicket.genericData.bankType})` : ''}</span>
+              </div>
+              {/if}
+              {#if selectedTicket.assignedTo}
+              <div>
+                <span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Assigned Local Agent</span>
+                <span class="text-indigo-600 font-bold">{selectedTicket.assignedTo.name}</span>
               </div>
               {/if}
 
