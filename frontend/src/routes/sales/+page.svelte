@@ -174,31 +174,31 @@
 <div class="flex h-screen bg-transparent text-slate-800 font-sans pb-16 md:pb-0">
   
   <!-- Sidebar -->
-  <aside class="w-64 bg-slate-900 text-slate-300 flex-col hidden md:flex shadow-2xl z-10">
-    <div class="h-16 flex items-center px-6 border-b border-slate-800 bg-slate-950">
+  <aside class="w-72 liquid-sidebar text-slate-300 flex-col hidden md:flex shadow-2xl z-10 shrink-0">
+    <div class="h-16 flex items-center px-6 border-b border-slate-800/80 bg-slate-950/80">
       <div class="w-8 h-8 rounded-full overflow-hidden mr-3 shadow-lg shadow-indigo-500/20 bg-indigo-50 flex items-center justify-center">
         <img src="/logo.png" alt="Logo" class="w-full h-full object-cover scale-110" onerror={(e) => e.currentTarget.style.display='none'} />
       </div>
       <h1 class="text-xl font-bold text-white tracking-tight">AK Flow</h1>
     </div>
-    <div class="flex-1 py-6 px-4 space-y-1 overflow-y-auto">
-      <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-2">Sales Operations</div>
-      <button class="w-full flex items-center space-x-3 bg-indigo-500/10 text-indigo-400 px-3 py-2.5 rounded-lg font-medium transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+    <div class="flex-1 py-6 px-3 space-y-1.5 overflow-y-auto">
+      <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-3">Sales Operations</div>
+      <button use:ripple class="w-full flex items-center space-x-3 liquid-glass-btn active px-3.5 py-2.5 rounded-xl font-medium">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
         <span>Dashboard</span>
       </button>
-      <button class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-300 px-3 py-2.5 rounded-lg font-medium transition-colors" onclick={() => window.location.href='/chat'}>
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+      <button use:ripple class="w-full flex items-center space-x-3 liquid-glass-btn text-slate-300 px-3.5 py-2.5 rounded-xl font-medium" onclick={() => window.location.href='/chat'}>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
         <span>Team Chat</span>
       </button>
-      <button onclick={() => showProfile = true} class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-300 px-3 py-2.5 rounded-lg font-medium transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      <button use:ripple onclick={() => showProfile = true} class="w-full flex items-center space-x-3 liquid-glass-btn text-slate-300 px-3.5 py-2.5 rounded-xl font-medium">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
         <span>Profile</span>
       </button>
     </div>
-    <div class="p-4 border-t border-slate-800">
-      <button onclick={() => { localStorage.clear(); window.location.href = '/'; }} class="w-full flex items-center space-x-3 hover:bg-slate-800 text-slate-400 hover:text-white px-3 py-2.5 rounded-lg font-medium transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+    <div class="p-3 border-t border-slate-800/80">
+      <button use:ripple onclick={() => { localStorage.clear(); window.location.href = '/'; }} class="w-full flex items-center space-x-3 liquid-glass-btn text-slate-400 hover:text-rose-300 px-3.5 py-2.5 rounded-xl font-medium">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         <span>Sign Out</span>
       </button>
     </div>
