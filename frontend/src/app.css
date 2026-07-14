@@ -68,6 +68,14 @@
     border-right: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 10px 0 30px -10px rgba(0, 0, 0, 0.5);
   }
+  .liquid-header {
+    background: rgba(15, 23, 42, 0.78) !important;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.45);
+    color: #f8fafc;
+  }
   .liquid-glass-btn {
     position: relative;
     overflow: hidden;

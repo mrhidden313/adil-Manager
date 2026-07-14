@@ -192,20 +192,30 @@
   <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
     
     <!-- Header -->
-    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8">
+    <header class="h-16 liquid-header flex items-center justify-between px-4 md:px-8 z-20 shrink-0">
       <div class="flex items-center md:hidden">
-        <div class="w-8 h-8 rounded-full overflow-hidden mr-2 bg-indigo-50 flex items-center justify-center">
+        <div class="w-8 h-8 rounded-full overflow-hidden mr-2 bg-indigo-50 flex items-center justify-center shadow-md">
           <img src="/logo.png" alt="Logo" class="w-full h-full object-cover scale-110" onerror={(e) => e.currentTarget.style.display='none'} />
         </div>
-        <span class="font-bold text-slate-800">AK Flow</span>
+        <span class="font-bold text-white">AK Flow</span>
       </div>
-      <h2 class="hidden md:block text-lg font-semibold text-slate-800">Platform Overview</h2>
+      <div class="hidden md:flex items-center gap-3">
+        <span class="relative flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.8)]"></span>
+        </span>
+        <h2 class="text-lg font-extrabold text-white tracking-wide">Platform Overview</h2>
+      </div>
       <div class="flex items-center space-x-4">
-        <div class="hidden sm:block text-sm text-slate-500">Super Admin Mode</div>
-        <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200 cursor-pointer" onclick={() => showProfile = true}>
-          S
+        <div class="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 shadow-inner">
+          Super Admin Mode
         </div>
-        <button onclick={() => { localStorage.clear(); window.location.href = '/'; }} class="md:hidden text-slate-500 hover:text-slate-800">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-cyan-400 p-[1.5px] shadow-lg hover:scale-105 transition-transform duration-300 cursor-pointer" onclick={() => showProfile = true}>
+          <div class="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-white font-bold text-sm">
+            S
+          </div>
+        </div>
+        <button onclick={() => { localStorage.clear(); window.location.href = '/'; }} class="md:hidden text-slate-400 hover:text-white">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         </button>
       </div>

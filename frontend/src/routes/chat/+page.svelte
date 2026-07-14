@@ -307,25 +307,37 @@
   </aside>
 
   <!-- Main Chat Area -->
-  <main class="flex-1 flex flex-col min-w-0 bg-white relative">
+  <main class="flex-1 flex flex-col min-w-0 bg-transparent relative">
     <!-- Header -->
-    <header class="h-16 flex items-center px-6 border-b border-slate-100 bg-white shadow-sm z-10 shrink-0">
-      <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center mr-3">
-        <span class="text-indigo-600 font-bold text-lg">#</span>
+    <header class="h-16 liquid-header hidden md:flex items-center justify-between px-6 z-10 shrink-0">
+      <div class="flex items-center space-x-3.5">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-400/20 via-indigo-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center shadow-inner">
+          <span class="text-cyan-400 font-extrabold text-lg">#</span>
+        </div>
+        <div>
+          <h2 class="font-extrabold text-white tracking-wide flex items-center gap-2">
+            Company General
+            <span class="inline-flex h-2 w-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]"></span>
+          </h2>
+          <p class="text-xs text-slate-300 font-medium">Real-time team collaboration lounge</p>
+        </div>
       </div>
-      <div>
-        <h2 class="font-bold text-slate-800">Company General</h2>
-        <p class="text-xs text-slate-500 font-medium">Chat with everyone in the company</p>
+      <div class="flex items-center space-x-3">
+        <div class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 shadow-inner">
+          Live Channel
+        </div>
       </div>
     </header>
 
         
     <!-- Mobile Header -->
-    <div class="md:hidden h-16 bg-slate-950 flex items-center justify-between px-4 shrink-0 shadow-md">
-      <button onclick={() => window.history.back()} class="p-2 text-slate-300 hover:text-white rounded-full hover:bg-slate-800 transition-colors">
+    <div class="md:hidden h-16 liquid-header flex items-center justify-between px-4 shrink-0 z-10">
+      <button onclick={() => window.history.back()} class="p-2 text-slate-300 hover:text-white rounded-full hover:bg-slate-800/60 transition-colors">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
       </button>
-      <h2 class="text-white font-bold text-lg">Team Chat</h2>
+      <h2 class="text-white font-extrabold text-lg tracking-wide flex items-center gap-2">
+        <span class="text-cyan-400 font-bold">#</span> Team Chat
+      </h2>
       <div class="w-10"></div> <!-- Spacer -->
     </div>
 

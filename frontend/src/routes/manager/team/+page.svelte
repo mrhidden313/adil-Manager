@@ -229,16 +229,30 @@
 
   <!-- Main Content -->
   <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
-    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8">
+    <header class="h-16 liquid-header flex items-center justify-between px-4 md:px-8 z-20 shrink-0">
       <div class="flex items-center md:hidden">
-        <div class="w-8 h-8 rounded-full overflow-hidden mr-2 bg-indigo-50 flex items-center justify-center">
+        <div class="w-8 h-8 rounded-full overflow-hidden mr-2 bg-indigo-50 flex items-center justify-center shadow-md">
           <img src="/logo.png" alt="Logo" class="w-full h-full object-cover scale-110" onerror={(e) => e.currentTarget.style.display='none'} />
         </div>
-        <span class="font-bold text-slate-800">AK Flow</span>
+        <span class="font-bold text-white">AK Flow</span>
       </div>
-      <h2 class="hidden md:block text-lg font-semibold text-slate-800">Staff Management</h2>
+      <div class="hidden md:flex items-center gap-3">
+        <span class="relative flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.8)]"></span>
+        </span>
+        <h2 class="text-lg font-extrabold text-white tracking-wide">Staff Management</h2>
+      </div>
       <div class="flex items-center space-x-4">
-        <button onclick={() => window.location.href = '/manager'} class="md:hidden flex items-center text-indigo-600 font-bold text-sm bg-indigo-50 px-3 py-1.5 rounded-full">
+        <div class="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 shadow-inner">
+          Review Mode
+        </div>
+        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-400 via-indigo-500 to-purple-500 p-[1.5px] shadow-lg hover:scale-105 transition-transform duration-300 cursor-pointer" onclick={() => showProfile = true}>
+          <div class="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-white font-bold text-sm">
+            M
+          </div>
+        </div>
+        <button onclick={() => window.location.href = '/manager'} class="md:hidden flex items-center text-cyan-300 font-bold text-sm bg-slate-800/80 border border-cyan-500/30 px-3.5 py-1.5 rounded-full">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" /></svg>
           Orders
         </button>

@@ -22,9 +22,9 @@
 </script>
 
   {#if role === 'SUPER_ADMIN'}
-    <div class="fixed top-4 right-4 z-50">
-      <button onclick={returnToAdmin} class="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-full shadow-lg hover:bg-indigo-700 flex items-center space-x-2">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"></path></svg>
+    <div class="fixed top-3.5 right-16 md:right-24 z-50">
+      <button onclick={returnToAdmin} class="px-4 py-1.5 bg-gradient-to-r from-indigo-600/90 via-purple-600/90 to-pink-600/90 hover:from-indigo-500 hover:to-pink-500 text-white text-xs font-black uppercase tracking-wider rounded-full border border-white/30 shadow-[0_0_20px_rgba(168,85,247,0.5)] backdrop-blur-xl transition-all duration-300 flex items-center space-x-2 cursor-pointer hover:scale-105 active:scale-95">
+        <svg class="w-4 h-4 animate-pulse text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"></path></svg>
         <span>Exit Company Mode</span>
       </button>
     </div>
