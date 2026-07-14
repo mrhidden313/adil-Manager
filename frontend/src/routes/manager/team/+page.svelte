@@ -5,6 +5,7 @@
   import ProfileModal from '$lib/components/ProfileModal.svelte';
   import BottomNav from '$lib/components/BottomNav.svelte';
   import LiveLogsTerminal from '$lib/components/LiveLogsTerminal.svelte';
+  import { requireRoleGuard, getAuthToken } from '$lib/utils/auth';
 
   let team: any[] = $state([]);
   let allTickets: any[] = $state([]);
@@ -43,7 +44,7 @@
   });
 
   async function fetchTeamData() {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/users/team', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -60,12 +61,15 @@
     if (resPayouts.ok) allPayouts = await resPayouts.json();
   }
 
-  onMount(() => { fetchTeamData(); });
+  onMount(() => { 
+    if (!requireRoleGuard(['MANAGER', 'SUPER_ADMIN'])) return;
+    fetchTeamData(); 
+  });
 
   async function handleAddTeamMember(e: Event) {
     e.preventDefault();
     isCreating = true;
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     try {
       const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/users/team', {
         method: 'POST',
@@ -92,7 +96,7 @@
     if (e) e.stopPropagation();
     const newStatus = !currentStatus;
     if (!confirm(`Are you sure you want to ${newStatus ? 'activate' : 'disable'} this agent?`)) return;
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/users/team/${userId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -104,7 +108,7 @@
   async function deleteTeamMember(userId: string, userName: string, e?: Event) {
     if (e) e.stopPropagation();
     if (!confirm(`WARNING: Are you sure you want to permanently delete agent "${userName}"? This cannot be undone.`)) return;
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/users/team/${userId}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
@@ -120,13 +124,13 @@
   async function impersonateUserAccount(targetUserId: string, e?: Event) {
     if (e) e.stopPropagation();
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/impersonate-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ targetUserId })
       });
-      if (res.status === 401) { localStorage.clear(); window.location.href='/'; return; }
+      if (res.status === 401) { localStorage.clear(); sessionStorage.clear(); window.location.href='/'; return; }
       if (!res.ok) {
         const err = await res.json();
         toast.add(err.error || 'Failed to impersonate account', 'error');
@@ -134,7 +138,7 @@
       }
       const data = await res.json();
       const userStr = JSON.stringify(data.user);
-      window.open(`/auth-callback?token=${encodeURIComponent(data.token)}&user=${encodeURIComponent(userStr)}&redirect=${encodeURIComponent(data.redirectUrl)}`, '_blank');
+      window.open(`/auth-callback?token=${encodeURIComponent(data.token)}&user=${encodeURIComponent(userStr)}&redirect=${encodeURIComponent(data.redirectUrl)}&impersonated=true`, '_blank');
       toast.add(`Opened ${data.user.name}'s cockpit in a new tab!`, 'success');
     } catch (error) {
       toast.add('Network error during auto-login', 'error');
@@ -155,7 +159,7 @@
     if (!payoutProofFile) return toast.add('Please upload a transfer screenshot.', 'error');
 
     isPayingBonus = true;
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const formData = new FormData();
     formData.append('agentId', selectedAgent.id);
     formData.append('amount', amount.toString());

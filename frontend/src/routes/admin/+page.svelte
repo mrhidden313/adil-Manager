@@ -4,6 +4,7 @@
   import { ripple } from '$lib/actions/ripple';
   import ProfileModal from '$lib/components/ProfileModal.svelte';
   import BottomNav from '$lib/components/BottomNav.svelte';
+  import { requireRoleGuard, getAuthToken } from '$lib/utils/auth';
 
   let companies: any[] = $state([]);
   let showProfileModal = $state(false);
@@ -30,11 +31,11 @@
   });
 
   async function fetchAdminData() {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/companies', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (res.status === 401) { localStorage.clear(); window.location.href='/'; return; }
+    if (res.status === 401) { localStorage.clear(); sessionStorage.clear(); window.location.href='/'; return; }
     if (res.ok) {
       companies = await res.json();
     }
@@ -43,6 +44,7 @@
   let pollInterval: any;
 
   onMount(() => {
+    if (!requireRoleGuard(['SUPER_ADMIN'])) return;
     fetchAdminData();
     pollInterval = setInterval(() => {
       if (document.visibilityState === 'visible' && !isCreating) {
@@ -57,7 +59,7 @@
 
   
   async function manageCompany(companyId: string) {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/auth/impersonate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -75,7 +77,7 @@
   async function handleAddCompany(e: Event) {
     e.preventDefault();
     isCreating = true;
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     
     try {
       const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/companies', {
@@ -87,7 +89,7 @@
         body: JSON.stringify({ companyName, managerName, managerEmail, managerPassword })
       });
       
-      if (res.status === 401) { localStorage.clear(); window.location.href='/'; return; }
+      if (res.status === 401) { localStorage.clear(); sessionStorage.clear(); window.location.href='/'; return; }
     if (res.ok) {
         showAddCompanyModal = false;
         companyName = ''; managerName = ''; managerEmail = ''; managerPassword = '';
@@ -108,7 +110,7 @@
     const newStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
     if (!confirm(`Are you sure you want to change status to ${newStatus}?`)) return;
     
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/companies/${companyId}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -120,7 +122,7 @@
   async function deleteCompany(companyId: string, companyName: string) {
     if (!confirm(`WARNING: Are you sure you want to delete agency "${companyName}"? Managers and users will lose access immediately.`)) return;
     
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/companies/${companyId}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
@@ -134,11 +136,11 @@
 
   async function viewUsers(comp: any) {
     selectedCompanyName = comp.name;
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/companies/${comp.id}/users`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (res.status === 401) { localStorage.clear(); window.location.href='/'; return; }
+    if (res.status === 401) { localStorage.clear(); sessionStorage.clear(); window.location.href='/'; return; }
     if (res.ok) {
       selectedCompanyUsers = await res.json();
       showUsersModal = true;
@@ -147,7 +149,7 @@
 
   async function impersonateUserAccount(targetUserId: string) {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/impersonate-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -161,7 +163,7 @@
       }
       const data = await res.json();
       const userStr = JSON.stringify(data.user);
-      window.open(`/auth-callback?token=${encodeURIComponent(data.token)}&user=${encodeURIComponent(userStr)}&redirect=${encodeURIComponent(data.redirectUrl)}`, '_blank');
+      window.open(`/auth-callback?token=${encodeURIComponent(data.token)}&user=${encodeURIComponent(userStr)}&redirect=${encodeURIComponent(data.redirectUrl)}&impersonated=true`, '_blank');
       toast.add(`Opened ${data.user.name}'s cockpit in a new tab!`, 'success');
     } catch (error) {
       toast.add('Network error during auto-login', 'error');

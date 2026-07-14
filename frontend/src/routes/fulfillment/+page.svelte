@@ -5,6 +5,7 @@
   import BottomNav from '$lib/components/BottomNav.svelte';
   import Lightbox from '$lib/components/Lightbox.svelte';
   import { ripple } from '$lib/actions/ripple';
+  import { getAuthToken, requireRoleGuard, isImpersonatingSession, exitImpersonation } from '$lib/utils/auth';
 
   let tickets: any[] = $state([]);
   let selectedTicket: any = $state(null);
@@ -35,11 +36,11 @@
   let earnedBonus = $derived(tickets.filter(t => t.status === 'COMPLETED').reduce((sum, t) => sum + ((parseInt(t.genericData?.ticketNumber) || 1) * 2), 0));
 
   async function fetchTickets() {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (res.status === 401) { localStorage.clear(); window.location.href='/'; return; }
+    if (res.status === 401) { localStorage.clear(); sessionStorage.clear(); window.location.href='/'; return; }
     if (res.ok) {
       const allTickets = await res.json();
       tickets = allTickets;
@@ -49,22 +50,10 @@
   let pollInterval: any;
 
   onMount(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.role !== 'FULFILLMENT') {
-          toast.add('You are logged in as a different role in another tab. Please log in again.', 'error');
-          localStorage.clear();
-          window.location.href = '/';
-          return;
-        }
-      } catch (e) {}
-    }
+    if (!requireRoleGuard(['FULFILLMENT', 'MANAGER', 'SUPER_ADMIN'])) return;
     
     fetchTickets();
     
-    // Smart polling: only fetch when tab is visible to reduce server load
     pollInterval = setInterval(() => {
       if (document.visibilityState === 'visible' && !isSubmitting) {
         fetchTickets();
@@ -86,7 +75,7 @@
     e.preventDefault();
     if (!proofFile || proofFile.length === 0) return toast.add('Please attach confirmation image.', 'error');
     
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     
     // Capture state before clearing
     const fileToUpload = proofFile[0];
@@ -134,7 +123,19 @@
   }
 </script>
 
-<div class="flex h-screen bg-transparent text-slate-800 font-sans">
+<div class="flex h-screen bg-transparent text-slate-800 font-sans relative">
+  {#if isImpersonatingSession()}
+    <div class="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white px-4 py-2 flex items-center justify-between text-xs font-bold shadow-lg">
+      <div class="flex items-center gap-2">
+        <span class="text-base">⚡</span>
+        <span>COCKPIT IMPERSONATION MODE — Acting as Fulfillment Agent</span>
+      </div>
+      <button onclick={() => exitImpersonation()} class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg border border-white/30 transition-colors cursor-pointer">
+        Exit to Manager Cockpit ✕
+      </button>
+    </div>
+  {/if}
+  
   
   <!-- Sidebar -->
   <aside class="w-72 liquid-sidebar text-slate-300 flex-col hidden md:flex shadow-2xl z-10 shrink-0">

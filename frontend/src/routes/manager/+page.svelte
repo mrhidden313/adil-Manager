@@ -7,6 +7,7 @@
   import BottomNav from '$lib/components/BottomNav.svelte';
   import Lightbox from '$lib/components/Lightbox.svelte';
   import LiveLogsTerminal from '$lib/components/LiveLogsTerminal.svelte';
+  import { requireRoleGuard, getAuthToken } from '$lib/utils/auth';
   
 
 
@@ -69,7 +70,7 @@
   });
 
   async function fetchData() {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     
     const [resTickets, resTeam, resPayouts, resNotif] = await Promise.all([
       fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', { headers: { 'Authorization': `Bearer ${token}` } }),
@@ -78,7 +79,7 @@
       fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/notifications', { headers: { 'Authorization': `Bearer ${token}` } })
     ]);
 
-    if (resTickets.status === 401) { localStorage.clear(); window.location.href='/'; return; }
+    if (resTickets.status === 401) { localStorage.clear(); sessionStorage.clear(); window.location.href='/'; return; }
     
     if (resTickets.ok) tickets = await resTickets.json();
     if (resPayouts.ok) payouts = await resPayouts.json();
@@ -93,6 +94,7 @@
 
   let pollInterval: any;
   onMount(() => {
+    if (!requireRoleGuard(['MANAGER', 'SUPER_ADMIN'])) return;
     fetchData();
     pollInterval = setInterval(() => {
       if (document.visibilityState === 'visible' && !isSubmitting) fetchData();
@@ -106,30 +108,29 @@
     assignToId = '';
     showTicketModal = true;
   }
-
   async function updateStatus(status: string, overrideAssignTo?: string | null) {
     const targetAssign = overrideAssignTo !== undefined ? overrideAssignTo : assignToId;
     if (status === 'APPROVED' && !targetAssign) {
       return toast.add('Please select a local agent to assign this ticket to.', 'error');
     }
     isSubmitting = true;
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/tickets/${selectedTicket.id}/status`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          status, 
-          assignedToId: status === 'APPROVED' ? targetAssign : (status === 'PENDING' ? null : undefined) 
-        })
+        body: JSON.stringify({ status, assignedToId: targetAssign || null })
       });
       if (res.ok) {
         showTicketModal = false;
         fetchData();
-        toast.add(status === 'PENDING' ? 'Order restored to Pending successfully!' : 'Status updated', 'success');
+        toast.add(`Order status updated to ${status}`, 'success');
       } else {
-        toast.add('Failed to update', 'error');
+        const data = await res.json();
+        toast.add(data.error || 'Failed to update order status', 'error');
       }
+    } catch (err) {
+      toast.add('Network error', 'error');
     } finally {
       isSubmitting = false;
     }
@@ -147,7 +148,7 @@
     if (!payoutProofFile) return toast.add('Please upload a screenshot of the payment.', 'error');
     
     isSubmitting = true;
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const formData = new FormData();
     formData.append('agentId', selectedAgentForPayout.id);
     formData.append('amount', payoutAmount);
@@ -176,7 +177,7 @@
   }
 
   async function markNotificationAsRead(id: string) {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/notifications/${id}/read`, {
       method: 'PATCH',
       headers: { 'Authorization': `Bearer ${token}` }

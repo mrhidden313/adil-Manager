@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { io, Socket } from 'socket.io-client';
+import { getAuthUser, getAuthToken } from '$lib/utils/auth';
 
 export interface LogEntry {
   id: string;
@@ -13,12 +14,7 @@ let globalSocket: Socket | null = null;
 const clientId = Math.random().toString(36).substring(2, 9);
 
 function getLocalUser() {
-  if (typeof window === 'undefined') return null;
-  try {
-    const userStr = localStorage.getItem('user');
-    if (userStr) return JSON.parse(userStr);
-  } catch (e) {}
-  return null;
+  return getAuthUser();
 }
 
 function createSystemLogsStore() {
@@ -103,7 +99,7 @@ function createSystemLogsStore() {
       if (globalSocket && globalSocket.connected) return globalSocket;
 
       const user = getLocalUser();
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       if (!user || !user.companyId || !token) return null;
 
       if (!globalSocket) {

@@ -6,6 +6,7 @@
   import { ripple } from '$lib/actions/ripple';
   import BottomNav from '$lib/components/BottomNav.svelte';
   import ProfileModal from '$lib/components/ProfileModal.svelte';
+  import { requireRoleGuard, getAuthToken } from '$lib/utils/auth';
 
   let messages: any[] = $state([]);
   let users: any[] = $state([]);
@@ -33,7 +34,7 @@
   });
 
   async function fetchInitialData() {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     if (!token) return window.location.href = '/';
 
     try {
@@ -44,43 +45,53 @@
 
       if (meRes.ok) currentUser = await meRes.json();
       if (usersRes.ok) users = await usersRes.json();
-      
-      
+
       if (currentUser?.role === 'SUPER_ADMIN') {
-        const companiesRes = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/admin/companies', { headers: { 'Authorization': `Bearer ${token}` } });
-        if (companiesRes.ok) {
-          companies = await companiesRes.json();
-          if (companies.length > 0) activeCompanyId = companies[0].id;
+        const compRes = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/companies', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (compRes.ok) {
+          companies = await compRes.json();
+          if (companies.length > 0 && !activeCompanyId) {
+            activeCompanyId = companies[0].id;
+          }
         }
       }
-      fetchMessages();
-  
 
-      // Setup Socket.io
-      const companyToJoin = currentUser?.companyId || activeCompanyId;
-      if (companyToJoin) {
-        socket = io((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '', {
-          transports: ['websocket', 'polling'],
-          withCredentials: true
-        });
-        
-        socket.on('connect', () => {
-          console.log('SOCKET CONNECTED to backend! Room:', companyToJoin);
-          socket?.emit('joinCompany', companyToJoin);
-        });
-
-        socket.on('newMessage', (msg) => {
-          console.log('NEW MESSAGE RECEIVED via SOCKET:', msg);
-          messages = [...messages, msg];
-        });
-      }
+      setupSocket();
     } catch (e) {
-      toast.add('Error loading chat', 'error');
+      toast.add('Failed to load initial chat data', 'error');
     }
   }
 
+  function setupSocket() {
+    const token = getAuthToken();
+    if (!token || socket) return;
+
+    socket = io((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '', {
+      auth: { token },
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {
+      if (activeCompanyId) {
+        socket?.emit('joinCompany', activeCompanyId);
+      }
+    });
+
+    socket.on('newMessage', (msg: any) => {
+      // Avoid duplicates if we optimistically added it
+      if (!messages.some(m => m.id === msg.id || (m.content === msg.content && m.status === 'pending'))) {
+        messages = [...messages, msg];
+      } else {
+        // replace pending with real
+        messages = messages.map(m => (m.content === msg.content && m.status === 'pending') ? msg : m);
+      }
+    });
+  }
+
   async function fetchMessages() {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     if (!token) return;
     
     try {
@@ -88,7 +99,7 @@
       const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (res.status === 401) { localStorage.clear(); window.location.href='/'; return; }
+      if (res.status === 401) { localStorage.clear(); sessionStorage.clear(); window.location.href='/'; return; }
     if (res.ok) {
         const data = await res.json();
         // Since we fetch 100 recent messages, we just replace them.
@@ -102,6 +113,8 @@
   let showNotificationBanner = $state(false);
   
   onMount(() => {
+    if (!requireRoleGuard(['SUPER_ADMIN', 'MANAGER', 'SALES', 'FULFILLMENT'])) return;
+
     // Polling fallback to guarantee auto-fetch
     pollInterval = setInterval(fetchMessages, 3000);
 
@@ -156,7 +169,7 @@
       if (messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }, 10);
 
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     
     try {
       const formData = new FormData();

@@ -16,9 +16,17 @@
         return;
       }
 
-      // Set auth data cleanly in this new tab
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', userStr);
+      const impersonated = params.get('impersonated') === 'true';
+
+      if (impersonated) {
+        // Set auth data cleanly in sessionStorage for this tab only (prevents overwriting Manager/Admin localStorage)
+        sessionStorage.setItem('token', token);
+        sessionStorage.setItem('user', userStr);
+        sessionStorage.setItem('isImpersonating', 'true');
+      } else {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', userStr);
+      }
 
       statusMessage = ' Cockpit authorized. Entering dashboard...';
 

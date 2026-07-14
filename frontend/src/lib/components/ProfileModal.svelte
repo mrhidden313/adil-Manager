@@ -1,6 +1,7 @@
 <script lang="ts">
   import { toast } from '$lib/stores/toast';
   import { onMount } from 'svelte';
+  import { getAuthToken } from '$lib/utils/auth';
 
   let { showProfile = $bindable(false) } = $props();
   
@@ -17,7 +18,7 @@
   let fileInput: HTMLInputElement | undefined = $state();
 
   async function fetchProfile() {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     if (!token) return;
 
     try {
@@ -53,9 +54,9 @@
     isSaving = true;
     try {
       const formData = new FormData();
-      formData.append('profilePicture', file, file.name || 'avatar.jpg');
+      formData.append('profilePicture', fileInput?.files?.[0] || target.files[0], target.files[0].name || 'avatar.jpg');
 
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/auth/profile', {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` },
@@ -94,7 +95,7 @@
       if (editPaymentAccountNumber !== userProfile.paymentAccountNumber) formData.append('paymentAccountNumber', editPaymentAccountNumber);
       if (editPassword) formData.append('password', editPassword);
 
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/auth/profile', {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` },

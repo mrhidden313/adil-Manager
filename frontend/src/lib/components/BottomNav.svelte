@@ -1,12 +1,13 @@
 <script lang="ts">
   import { page } from '$app/stores';
+  import { getAuthToken } from '$lib/utils/auth';
 
   let { role, showProfile = $bindable() } = $props<{ role: string; showProfile: boolean }>();
   
   let currentPath = $derived($page.url.pathname);
 
   async function returnToAdmin() {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/auth/impersonate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },

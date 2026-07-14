@@ -1,3 +1,5 @@
+import { getAuthToken } from '$lib/utils/auth';
+
 export async function subscribeToPush() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     return false;
@@ -10,7 +12,7 @@ export async function subscribeToPush() {
     const registration = await navigator.serviceWorker.ready;
     
     // Get VAPID public key from backend
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     const vapidRes = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/push/vapid-public-key', {
       headers: { 'Authorization': `Bearer ${token}` }
     });

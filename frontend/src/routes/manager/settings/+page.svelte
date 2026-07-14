@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { toast } from '$lib/stores/toast';
+  import { requireRoleGuard, getAuthToken } from '$lib/utils/auth';
 
   let currentUser: any = $state(null);
   let company: any = $state(null);
@@ -9,7 +10,7 @@
 
   async function loadSettings() {
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const meRes = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
       if (meRes.ok) {
         currentUser = await meRes.json();
@@ -28,13 +29,16 @@
     }
   }
 
-  onMount(loadSettings);
+  onMount(() => {
+    if (!requireRoleGuard(['MANAGER', 'SUPER_ADMIN'])) return;
+    loadSettings();
+  });
 
   async function saveSettings(e: Event) {
     e.preventDefault();
     isSaving = true;
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/companies/${currentUser.companyId}/settings`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },

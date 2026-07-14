@@ -5,6 +5,7 @@
   import ProfileModal from '$lib/components/ProfileModal.svelte';
   import BottomNav from '$lib/components/BottomNav.svelte';
   import Lightbox from '$lib/components/Lightbox.svelte';
+  import { getAuthToken, isImpersonatingSession, exitImpersonation, requireRoleGuard } from '$lib/utils/auth';
 
   let tickets: any[] = $state([]);
   let payouts: any[] = $state([]);
@@ -49,7 +50,7 @@
   let displayedTickets = $derived(sortedTickets.filter(t => ordersTab === 'ALL' || t.status === ordersTab));
 
   async function fetchData() {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     
     const [resTickets, resPayouts, resNotif] = await Promise.all([
       fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', { headers: { 'Authorization': `Bearer ${token}` } }),
@@ -57,7 +58,7 @@
       fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/notifications', { headers: { 'Authorization': `Bearer ${token}` } })
     ]);
 
-    if (resTickets.status === 401) { localStorage.clear(); window.location.href='/'; return; }
+    if (resTickets.status === 401) { localStorage.clear(); sessionStorage.clear(); window.location.href='/'; return; }
     
     if (resTickets.ok) tickets = await resTickets.json();
     if (resPayouts.ok) payouts = await resPayouts.json();
@@ -66,6 +67,7 @@
 
   let pollInterval: any;
   onMount(() => {
+    if (!requireRoleGuard(['SALES', 'MANAGER', 'SUPER_ADMIN'])) return;
     fetchData();
     pollInterval = setInterval(() => {
       if (document.visibilityState === 'visible' && !isSubmitting) fetchData();
@@ -79,7 +81,7 @@
     if (!proofFile || proofFile.length === 0) return toast.add('Please attach payment proof.', 'error');
     if (!customerName || !amount || parseFloat(amount) <= 0) return toast.add('Please provide valid customer name and amount.', 'error');
 
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     
     // Capture form values before clearing
     const fileToUpload = proofFile[0];
@@ -144,7 +146,7 @@
   }
 
   async function approvePayout(payoutId: string) {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/payouts/${payoutId}/approve`, {
         method: 'PATCH',
@@ -162,7 +164,7 @@
   }
 
   async function markNotificationAsRead(id: string) {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/notifications/${id}/read`, {
       method: 'PATCH',
       headers: { 'Authorization': `Bearer ${token}` }
@@ -171,7 +173,18 @@
   }
 </script>
 
-<div class="flex h-screen bg-transparent text-slate-800 font-sans pb-16 md:pb-0">
+<div class="flex h-screen bg-transparent text-slate-800 font-sans pb-16 md:pb-0 relative">
+  {#if isImpersonatingSession()}
+    <div class="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white px-4 py-2 flex items-center justify-between text-xs font-bold shadow-lg">
+      <div class="flex items-center gap-2">
+        <span class="text-base">⚡</span>
+        <span>COCKPIT IMPERSONATION MODE — Acting as Sales Agent</span>
+      </div>
+      <button onclick={() => exitImpersonation()} class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg border border-white/30 transition-colors cursor-pointer">
+        Exit to Manager Cockpit ✕
+      </button>
+    </div>
+  {/if}
   
   <!-- Sidebar -->
   <aside class="w-72 liquid-sidebar text-slate-300 flex-col hidden md:flex shadow-2xl z-10 shrink-0">
