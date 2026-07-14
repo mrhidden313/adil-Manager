@@ -1,7 +1,6 @@
 <script lang="ts">
   import { toast } from '$lib/stores/toast';
   import { onMount } from 'svelte';
-  import imageCompression from 'browser-image-compression';
 
   let { showProfile = $bindable(false) } = $props();
   
@@ -53,12 +52,8 @@
     
     isSaving = true;
     try {
-      const file = target.files[0];
-      const options = { maxSizeMB: 0.1, maxWidthOrHeight: 800, useWebWorker: true };
-      const compressedFile = await imageCompression(file, options);
-      
       const formData = new FormData();
-      formData.append('profilePicture', compressedFile, file.name);
+      formData.append('profilePicture', file, file.name || 'avatar.jpg');
 
       const token = localStorage.getItem('token');
       const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/auth/profile', {
@@ -71,10 +66,18 @@
         const data = await res.json();
         userProfile = data.user;
       } else {
-        toast.add('Failed to upload picture', 'error');
+        let errMsg = 'Failed to upload picture';
+        try {
+          const errData = await res.json();
+          errMsg = errData.error || errMsg;
+        } catch (e) {
+          errMsg = `Server error (${res.status})`;
+        }
+        toast.add(errMsg, 'error');
       }
-    } catch (err) {
-      toast.add('Error uploading picture', 'error');
+    } catch (err: any) {
+      console.error('Profile picture upload error:', err);
+      toast.add(err?.message || 'Error uploading picture', 'error');
     } finally {
       isSaving = false;
     }

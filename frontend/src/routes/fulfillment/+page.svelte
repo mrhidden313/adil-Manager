@@ -4,7 +4,6 @@
   import ProfileModal from '$lib/components/ProfileModal.svelte';
   import BottomNav from '$lib/components/BottomNav.svelte';
   import Lightbox from '$lib/components/Lightbox.svelte';
-  import imageCompression from 'browser-image-compression';
 
   let tickets: any[] = $state([]);
   let selectedTicket: any = $state(null);
@@ -93,20 +92,12 @@
     toast.add('Order finishing... Uploading proof in background 🚀', 'success');
     activeTab = 'COMPLETED'; // Optimistically switch to completed tab
 
-    // Run compression and upload asynchronously
+    // Upload asynchronously without compression
     (async () => {
       try {
-        const options = {
-          maxSizeMB: 0.5,
-          maxWidthOrHeight: 1920,
-          useWebWorker: true
-        };
-        
-        const compressedFile = await imageCompression(fileToUpload, options);
-        
         const formData = new FormData();
         formData.append('status', 'COMPLETED');
-        formData.append('fulfillmentProof', compressedFile, fileToUpload.name);
+        formData.append('fulfillmentProof', fileToUpload, fileToUpload.name || 'proof.jpg');
 
         const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/tickets/${ticketId}/status`, {
           method: 'PATCH',
@@ -119,12 +110,19 @@
           toast.add('Order marked as completed successfully!', 'success');
           fetchTickets();
         } else {
-          const errorData = await res.json();
-          toast.add(errorData.error || 'Failed to finish order', 'error');
+          let errMsg = 'Failed to finish order';
+          try {
+            const errorData = await res.json();
+            errMsg = errorData.error || errMsg;
+          } catch (e) {
+            errMsg = `Server error (${res.status})`;
+          }
+          toast.add(errMsg, 'error');
           // Revert tab if failed (optional, user can just refresh)
         }
-      } catch (err) {
-        toast.add('Error uploading confirmation image.', 'error');
+      } catch (err: any) {
+        console.error('Fulfillment upload error:', err);
+        toast.add(err?.message || 'Error uploading confirmation image.', 'error');
       }
     })();
   }

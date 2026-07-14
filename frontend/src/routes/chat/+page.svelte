@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { toast } from '$lib/stores/toast';
-  import imageCompression from 'browser-image-compression';
   import { io, Socket } from 'socket.io-client';
   import { subscribeToPush } from '$lib/utils/push';
   import BottomNav from '$lib/components/BottomNav.svelte';
@@ -167,10 +166,7 @@
       }
 
       if (file) {
-        // Compress in background
-        const options = { maxSizeMB: 0.1, maxWidthOrHeight: 1200, useWebWorker: true };
-        const compressedFile = await imageCompression(file, options);
-        formData.append('image', compressedFile, file.name);
+        formData.append('image', file, file.name || 'image.jpg');
       }
 
       const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/messages', {
@@ -183,11 +179,19 @@
       if (res.ok) {
         fetchMessages();
       } else {
-        toast.add('Failed to send message', 'error');
+        let errMsg = 'Failed to send message';
+        try {
+          const errData = await res.json();
+          errMsg = errData.error || errMsg;
+        } catch (e) {
+          errMsg = `Server error (${res.status})`;
+        }
+        toast.add(errMsg, 'error');
         messages = messages.filter((m: any) => m.id !== optimisticMsg.id);
       }
-    } catch (err) {
-      toast.add('Network error', 'error');
+    } catch (err: any) {
+      console.error('Chat send error:', err);
+      toast.add(err?.message || 'Network error sending message', 'error');
       messages = messages.filter((m: any) => m.id !== optimisticMsg.id);
     }
   }

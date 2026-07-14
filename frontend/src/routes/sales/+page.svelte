@@ -5,7 +5,6 @@
   import ProfileModal from '$lib/components/ProfileModal.svelte';
   import BottomNav from '$lib/components/BottomNav.svelte';
   import Lightbox from '$lib/components/Lightbox.svelte';
-  import imageCompression from 'browser-image-compression';
 
   let tickets: any[] = $state([]);
   let payouts: any[] = $state([]);
@@ -100,12 +99,9 @@
     customerName = ''; countryCode = '+92'; phoneDigits = ''; ticketNumber = ''; amount = ''; paymentMethod = 'EASYPAISA'; bankType = ''; notes = ''; proofFile = null;
     toast.add('Order processing... Uploading in background 🚀', 'success');
 
-    // Run compression and upload asynchronously
+    // Upload asynchronously without compression
     (async () => {
       try {
-        const options = { maxSizeMB: 0.1, maxWidthOrHeight: 1024, useWebWorker: true };
-        const compressedFile = await imageCompression(fileToUpload, options);
-        
         const formData = new FormData();
         formData.append('transactionId', `TRX-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
         formData.append('price', ticketData.amount);
@@ -119,7 +115,7 @@
           notes: ticketData.notes
         }));
 
-        formData.append('proof', compressedFile, fileToUpload.name);
+        formData.append('proof', fileToUpload, fileToUpload.name || 'proof.jpg');
 
         const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', {
           method: 'POST',
@@ -131,11 +127,18 @@
           toast.add('Order submitted successfully! You will earn a 10% bonus when completed.', 'success');
           fetchData();
         } else {
-          const err = await res.json();
-          toast.add(err.error || 'Failed to create order', 'error');
+          let errMsg = 'Failed to create order';
+          try {
+            const err = await res.json();
+            errMsg = err.error || errMsg;
+          } catch (e) {
+            errMsg = `Server error (${res.status})`;
+          }
+          toast.add(errMsg, 'error');
         }
-      } catch (err) {
-        toast.add('Error uploading payment proof.', 'error');
+      } catch (err: any) {
+        console.error('Order upload error:', err);
+        toast.add(err?.message || 'Network error while uploading payment proof.', 'error');
       }
     })();
   }
