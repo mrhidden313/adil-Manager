@@ -2,8 +2,8 @@
   import { toast } from '$lib/stores/toast';
   import { onMount, onDestroy } from 'svelte';
   import ProfileModal from '$lib/components/ProfileModal.svelte';
-  import BottomNav from '$lib/components/BottomNav.svelte';
   import Lightbox from '$lib/components/Lightbox.svelte';
+  import { ripple } from '$lib/actions/ripple';
 
   let tickets: any[] = $state([]);
   let selectedTicket: any = $state(null);
@@ -27,6 +27,11 @@
   let filteredTickets = $derived.by(() => {
     return tickets.filter(t => t.status === activeTab);
   });
+
+  let totalOrders = $derived(tickets.length);
+  let pendingOrders = $derived(tickets.filter(t => t.status === 'APPROVED').length);
+  let totalTickets = $derived(tickets.reduce((sum, t) => sum + (parseInt(t.genericData?.ticketNumber) || 1), 0));
+  let earnedBonus = $derived(tickets.filter(t => t.status === 'COMPLETED').reduce((sum, t) => sum + ((parseInt(t.genericData?.ticketNumber) || 1) * 2), 0));
 
   async function fetchTickets() {
     const token = localStorage.getItem('token');
@@ -190,6 +195,56 @@
         <div class="mb-6">
           <h1 class="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">Assigned Tasks</h1>
           <p class="text-slate-500 mt-1 text-sm">Process and complete your fulfillment queue.</p>
+        </div>
+
+        <!-- Top Stats Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <!-- Total Orders -->
+          <div use:ripple class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl cursor-pointer" style="background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3)); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 30px rgba(0,0,0,0.05); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-indigo-400/20 rounded-full blur-lg"></div>
+            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-blue-400/15 rounded-full blur-lg"></div>
+            <div class="relative z-10">
+              <p class="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">Total Assigned</p>
+              <span class="text-2xl font-black text-slate-800">{totalOrders}</span>
+              <p class="text-[10px] text-slate-500 font-semibold mt-1">Orders in Queue</p>
+            </div>
+          </div>
+
+          <!-- Pending Orders -->
+          <div use:ripple onclick={() => activeTab = 'APPROVED'} class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl cursor-pointer" style="background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3)); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 30px rgba(0,0,0,0.05); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-amber-400/20 rounded-full blur-lg"></div>
+            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-orange-400/15 rounded-full blur-lg"></div>
+            <div class="relative z-10">
+              <p class="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">Pending To-Do</p>
+              <span class="text-2xl font-black text-amber-700">{pendingOrders}</span>
+              <p class="text-[10px] text-amber-700/80 font-semibold mt-1">Needs action</p>
+            </div>
+          </div>
+
+          <!-- Total Tickets -->
+          <div use:ripple class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl cursor-pointer" style="background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3)); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 30px rgba(0,0,0,0.05); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-purple-400/20 rounded-full blur-lg"></div>
+            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-pink-400/15 rounded-full blur-lg"></div>
+            <div class="relative z-10">
+              <p class="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">Total Tickets</p>
+              <span class="text-2xl font-black text-purple-700">{totalTickets}</span>
+              <p class="text-[10px] text-purple-700/80 font-semibold mt-1">Tickets in orders</p>
+            </div>
+          </div>
+
+          <!-- Earned Bonus (2 PKR / Ticket) -->
+          <div use:ripple onclick={() => activeTab = 'COMPLETED'} class="p-5 relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 rounded-2xl cursor-pointer" style="background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3)); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 30px rgba(0,0,0,0.05); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+            <div class="absolute right-[-10px] top-[-10px] w-20 h-20 bg-emerald-400/20 rounded-full blur-lg"></div>
+            <div class="absolute left-[-10px] bottom-[-10px] w-16 h-16 bg-teal-400/15 rounded-full blur-lg"></div>
+            <div class="relative z-10">
+              <p class="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1">Earned Bonus (2 PKR/T)</p>
+              <div>
+                <span class="text-[10px] font-bold text-slate-600">PKR </span>
+                <span class="text-2xl font-black text-emerald-700">{earnedBonus.toLocaleString()}</span>
+              </div>
+              <p class="text-[10px] text-emerald-700/80 font-semibold mt-1">On finished orders</p>
+            </div>
+          </div>
         </div>
 
         <!-- Filter Tabs -->
