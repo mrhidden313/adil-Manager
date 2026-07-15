@@ -167,3 +167,54 @@ export const deleteTeamMember = async (req: AuthRequest, res: Response): Promise
     res.status(500).json({ error: 'Failed to delete team member. Ensure they have no active linked records.' });
   }
 };
+
+export const changeTeamMemberPassword = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const requesterId = req.user?.id;
+    const requesterRole = req.user?.role;
+    const requesterCompanyId = req.user?.companyId;
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      res.status(400).json({ error: 'Password must be at least 6 characters' });
+      return;
+    }
+
+    // Super Admin can change any user's password
+    // Manager can only change passwords of users in their own company
+    let targetUser;
+    if (requesterRole === 'SUPER_ADMIN') {
+      targetUser = await prisma.user.findUnique({ where: { id: id as string } });
+    } else if (requesterRole === 'MANAGER' && requesterCompanyId) {
+      targetUser = await prisma.user.findFirst({
+        where: { id: id as string, companyId: requesterCompanyId }
+      });
+      // Manager cannot change another manager's or admin's password
+      if (targetUser && (targetUser.role === 'MANAGER' || targetUser.role === 'SUPER_ADMIN') && targetUser.id !== requesterId) {
+        res.status(403).json({ error: 'Managers can only change passwords for their Sales and Fulfillment agents' });
+        return;
+      }
+    } else {
+      res.status(403).json({ error: 'Not authorized' });
+      return;
+    }
+
+    if (!targetUser) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: targetUser.id },
+      data: { password: hashedPassword }
+    });
+
+    res.json({ success: true, message: `Password updated for ${targetUser.name}` });
+  } catch (error) {
+    console.error('changeTeamMemberPassword error:', error);
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+};
+

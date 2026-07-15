@@ -390,7 +390,7 @@
     {/if}
 
     <!-- Messages List -->
-    <div bind:this={messagesContainer} class="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50">
+    <div bind:this={messagesContainer} class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6 bg-slate-50/50 pb-2">
       {#if messages.length === 0}
         <div class="h-full flex flex-col items-center justify-center text-slate-400 space-y-4">
           <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
@@ -451,7 +451,7 @@
     </div>
 
     <!-- Input Area -->
-    <div class="p-4 bg-white border-t border-slate-100 shrink-0 relative">
+    <div class="p-4 bg-white border-t border-slate-100 shrink-0 relative pb-[calc(1rem+env(safe-area-inset-bottom,0px))] md:pb-4">
       {#if selectedFile}
         <div class="absolute -top-14 left-4 bg-white border border-slate-200 rounded-lg p-2 shadow-lg flex items-center space-x-3 z-20">
           <div class="w-10 h-10 rounded bg-slate-100 flex items-center justify-center overflow-hidden">

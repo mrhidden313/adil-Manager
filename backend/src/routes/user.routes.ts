@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAllUsers, deleteUser, createTeamMember, getMyTeam, toggleTeamMemberStatus, deleteTeamMember } from '../controllers/user.controller';
+import { getAllUsers, deleteUser, createTeamMember, getMyTeam, toggleTeamMemberStatus, deleteTeamMember, changeTeamMemberPassword } from '../controllers/user.controller';
 import { requireAuth, requireRole } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -17,5 +17,7 @@ router.get('/team', getMyTeam as any);
 router.post('/team', requireRole(['MANAGER']) as any, createTeamMember as any);
 router.patch('/team/:id/status', requireRole(['MANAGER']) as any, toggleTeamMemberStatus as any);
 router.delete('/team/:id', requireRole(['MANAGER']) as any, deleteTeamMember as any);
+router.patch('/team/:id/password', requireRole(['MANAGER', 'SUPER_ADMIN']) as any, changeTeamMemberPassword as any);
 
 export default router;
+

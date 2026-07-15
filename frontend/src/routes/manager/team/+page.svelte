@@ -21,6 +21,50 @@
   let payoutProofPreview: string = $state('');
   let isPayingBonus = $state(false);
 
+  // Change Password state
+  let showChangePasswordModal = $state(false);
+  let changePasswordTarget: any = $state(null);
+  let newPasswordValue = $state('');
+  let confirmPasswordValue = $state('');
+  let isChangingPassword = $state(false);
+  let showNewPw = $state(false);
+  let showConfirmPw = $state(false);
+
+  function openChangePassword(member: any, e?: Event) {
+    if (e) e.stopPropagation();
+    changePasswordTarget = member;
+    newPasswordValue = '';
+    confirmPasswordValue = '';
+    showChangePasswordModal = true;
+  }
+
+  async function submitChangePassword(e: Event) {
+    e.preventDefault();
+    if (newPasswordValue.length < 6) return toast.add('Password must be at least 6 characters', 'error');
+    if (newPasswordValue !== confirmPasswordValue) return toast.add('Passwords do not match', 'error');
+    isChangingPassword = true;
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/users/team/${changePasswordTarget.id}/password`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ newPassword: newPasswordValue })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.add(data.message || `Password changed for ${changePasswordTarget.name}`, 'success');
+        showChangePasswordModal = false;
+      } else {
+        const err = await res.json();
+        toast.add(err.error || 'Failed to change password', 'error');
+      }
+    } catch {
+      toast.add('Network error', 'error');
+    } finally {
+      isChangingPassword = false;
+    }
+  }
+
   function handleProofSelect(e: any) {
     const file = e.target.files[0];
     if (file) {
@@ -372,6 +416,10 @@
                     <span>⚡</span>
                     <span>Login as User</span>
                   </button>
+                  <button onclick={(e) => openChangePassword(member, e)} class="w-full py-2.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors shadow-sm flex items-center justify-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span>Change Password</span>
+                  </button>
                   {#if member.isActive}
                     <button onclick={(e) => toggleStatus(member.id, member.isActive, e)} class="w-full py-2.5 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-colors shadow-sm">Disable Agent Access</button>
                   {:else}
@@ -603,6 +651,110 @@
           </div>
         </form>
       </div>
+    </div>
+  </div>
+{/if}
+
+<!-- ===== Change Password Modal ===== -->
+{#if showChangePasswordModal && changePasswordTarget}
+  <div class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+      <!-- Header -->
+      <div class="px-7 py-6 bg-gradient-to-r from-amber-500 to-orange-500 flex justify-between items-center">
+        <div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Change Password
+          </h3>
+          <p class="text-amber-100 text-xs mt-0.5 font-medium">For: <span class="font-bold text-white">{changePasswordTarget.name}</span> · <span class="uppercase text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full">{changePasswordTarget.role}</span></p>
+        </div>
+        <button onclick={() => showChangePasswordModal = false} class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors cursor-pointer">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Form -->
+      <form onsubmit={submitChangePassword} class="p-7 space-y-5">
+        <!-- New Password -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">New Password</label>
+          <div class="relative">
+            <input
+              type={showNewPw ? 'text' : 'password'}
+              bind:value={newPasswordValue}
+              required
+              minlength="6"
+              placeholder="Enter new password..."
+              class="w-full px-4 py-3 pr-12 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+            />
+            <button type="button" onclick={() => showNewPw = !showNewPw} class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+              {#if showNewPw}
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>
+              {:else}
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              {/if}
+            </button>
+          </div>
+          {#if newPasswordValue.length > 0}
+            <div class="mt-1.5 flex gap-1">
+              {#each [1,2,3,4] as step}
+                <div class="h-1 flex-1 rounded-full transition-all {newPasswordValue.length >= step * 3 ? (newPasswordValue.length >= 12 ? 'bg-emerald-500' : newPasswordValue.length >= 9 ? 'bg-amber-500' : 'bg-rose-400') : 'bg-slate-200'}"></div>
+              {/each}
+            </div>
+            <p class="text-[10px] text-slate-500 mt-1">{newPasswordValue.length < 6 ? 'Too short (min 6 chars)' : newPasswordValue.length < 9 ? 'Weak — consider adding more characters' : newPasswordValue.length < 12 ? 'Good password' : 'Strong password ✓'}</p>
+          {/if}
+        </div>
+
+        <!-- Confirm Password -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Confirm Password</label>
+          <div class="relative">
+            <input
+              type={showConfirmPw ? 'text' : 'password'}
+              bind:value={confirmPasswordValue}
+              required
+              placeholder="Confirm new password..."
+              class="w-full px-4 py-3 pr-12 bg-slate-50 border {confirmPasswordValue && confirmPasswordValue !== newPasswordValue ? 'border-rose-400 focus:ring-rose-500' : 'border-slate-200 focus:ring-amber-500 focus:border-amber-500'} rounded-xl text-sm outline-none transition-all"
+            />
+            <button type="button" onclick={() => showConfirmPw = !showConfirmPw} class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer">
+              {#if showConfirmPw}
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>
+              {:else}
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              {/if}
+            </button>
+          </div>
+          {#if confirmPasswordValue && confirmPasswordValue !== newPasswordValue}
+            <p class="text-[10px] text-rose-500 mt-1 font-semibold">⚠ Passwords do not match</p>
+          {:else if confirmPasswordValue && confirmPasswordValue === newPasswordValue}
+            <p class="text-[10px] text-emerald-600 mt-1 font-semibold">✓ Passwords match</p>
+          {/if}
+        </div>
+
+        <!-- Warning notice -->
+        <div class="flex items-start gap-2.5 p-3 bg-amber-50 rounded-xl border border-amber-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-600 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m10.29 3.86-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.71-3.14l-8-14a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <p class="text-[11px] text-amber-700 font-medium leading-snug">The agent will be logged out of their current session and must use the new password to log in.</p>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex gap-3 pt-1">
+          <button type="button" onclick={() => showChangePasswordModal = false} class="flex-1 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors text-sm">Cancel</button>
+          <button
+            type="submit"
+            disabled={isChangingPassword || newPasswordValue.length < 6 || newPasswordValue !== confirmPasswordValue}
+            class="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 text-sm flex items-center justify-center gap-2"
+          >
+            {#if isChangingPassword}
+              <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <span>Updating...</span>
+            {:else}
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span>Update Password</span>
+            {/if}
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 {/if}

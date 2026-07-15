@@ -372,12 +372,23 @@
         </div>
 
         {#if activeTab === 'ORDERS'}
-          <div class="flex space-x-4 mb-4 overflow-x-auto pb-2 animate-stagger" style="animation-delay: 200ms;">
-            <button onclick={() => ordersTab = 'PENDING'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'PENDING' ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Pending Approval ({tickets.filter(t => t.status === 'PENDING').length})</button>
-            <button onclick={() => ordersTab = 'APPROVED'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'APPROVED' ? 'bg-indigo-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Approved ({tickets.filter(t => t.status === 'APPROVED').length})</button>
-            <button onclick={() => ordersTab = 'COMPLETED'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'COMPLETED' ? 'bg-emerald-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Completed ({tickets.filter(t => t.status === 'COMPLETED').length})</button>
-            <button onclick={() => ordersTab = 'REJECTED'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'REJECTED' ? 'bg-rose-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Rejected ({tickets.filter(t => t.status === 'REJECTED').length})</button>
+          <div class="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide animate-stagger" style="animation-delay: 200ms;">
+            {#each [
+              { key: 'PENDING', label: 'Pending', count: tickets.filter(t => t.status === 'PENDING').length, activeClass: 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/30', dotClass: 'bg-white/70' },
+              { key: 'APPROVED', label: 'Approved', count: tickets.filter(t => t.status === 'APPROVED').length, activeClass: 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30', dotClass: 'bg-white/70' },
+              { key: 'COMPLETED', label: 'Completed', count: tickets.filter(t => t.status === 'COMPLETED').length, activeClass: 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30', dotClass: 'bg-white/70' },
+              { key: 'REJECTED', label: 'Rejected', count: tickets.filter(t => t.status === 'REJECTED').length, activeClass: 'bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/30', dotClass: 'bg-white/70' }
+            ] as tb}
+              <button
+                onclick={() => ordersTab = tb.key}
+                class={`flex-shrink-0 flex flex-col items-center justify-center px-4 py-2.5 rounded-2xl text-xs font-bold transition-all duration-300 min-w-[80px] border ${ordersTab === tb.key ? tb.activeClass + ' border-transparent scale-[1.03]' : 'bg-white/60 backdrop-blur-sm text-slate-600 border-slate-200/80 hover:bg-white hover:shadow-md'}`}
+              >
+                <span class={`text-lg font-black leading-none ${ordersTab === tb.key ? 'text-white' : 'text-slate-800'}`}>{tb.count}</span>
+                <span class={`mt-0.5 text-[10px] font-bold tracking-wide uppercase ${ordersTab === tb.key ? 'text-white/90' : 'text-slate-500'}`}>{tb.label}</span>
+              </button>
+            {/each}
           </div>
+
 
           <div class="space-y-4">
             {#if filteredTickets.length === 0}
