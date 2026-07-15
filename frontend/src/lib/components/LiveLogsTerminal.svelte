@@ -3,6 +3,8 @@
   import { onMount } from 'svelte';
   import { toast } from '$lib/stores/toast';
 
+  let { heightClass = 'h-[60vh]' }: { heightClass?: string } = $props();
+
   let logsContainer: HTMLDivElement;
   let copied = $state(false);
 
@@ -42,7 +44,8 @@
     </div>
   </div>
 
-  <div bind:this={logsContainer} class="h-44 overflow-y-auto space-y-1.5 pr-1 font-mono text-[10px] scrollbar-thin scrollbar-thumb-slate-800">
+  <div bind:this={logsContainer} class="{heightClass} overflow-y-auto space-y-1.5 pr-1 font-mono text-[10px] scrollbar-thin scrollbar-thumb-slate-800">
+
     {#if $systemLogs.length === 0}
       <div class="text-center py-6 text-slate-600 italic">No logs generated yet...</div>
     {:else}
