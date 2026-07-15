@@ -13,18 +13,31 @@ self.addEventListener('push', (event) => {
       body: data.body,
       icon: data.icon || '/logo.png',
       badge: '/logo.png',
+      sound: '/notification.wav',
       data: {
         url: data.url || '/'
       },
-      vibrate: [100, 50, 100],
-      tag: 'chat-message' // This groups notifications with the same tag
+      vibrate: [200, 100, 200, 100, 200],
+      tag: data.tag || 'notification-' + Date.now()
     };
+
+    // Notify any open browser tabs to play the sound right away
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      clients.forEach((client) => {
+        client.postMessage({
+          type: 'PLAY_NOTIFICATION_SOUND',
+          title: title,
+          body: data.body
+        });
+      });
+    });
 
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (err) {
     console.error('Error parsing push data', err);
   }
 });
+
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();

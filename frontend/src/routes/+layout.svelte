@@ -2,7 +2,7 @@
   import '../app.css';
   import Toast from '$lib/components/Toast.svelte';
   import NotificationBanner from '$lib/components/NotificationBanner.svelte';
-  import { systemLogs } from '$lib/stores/systemLogs';
+  import { systemLogs, playAlertSound } from '$lib/stores/systemLogs';
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { fade } from 'svelte/transition';
@@ -16,12 +16,19 @@
       try {
         const { registerSW } = await import('virtual:pwa-register');
         registerSW({ immediate: true });
+
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data?.type === 'PLAY_NOTIFICATION_SOUND') {
+            playAlertSound();
+          }
+        });
       } catch (err) {
         console.error('PWA registration failed:', err);
       }
     }
   });
 </script>
+
 
 <Toast />
 <NotificationBanner />

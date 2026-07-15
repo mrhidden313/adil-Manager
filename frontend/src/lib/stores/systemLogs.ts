@@ -17,6 +17,18 @@ function getLocalUser() {
   return getAuthUser();
 }
 
+export function playAlertSound() {
+  if (typeof window !== 'undefined') {
+    try {
+      const audio = new Audio('/notification.wav');
+      audio.volume = 1.0;
+      audio.play().catch(e => console.log('Audio autoplay prevented:', e));
+    } catch (e) {
+      console.error('Error playing sound:', e);
+    }
+  }
+}
+
 function createSystemLogsStore() {
   const { subscribe, update, set } = writable<LogEntry[]>([
     {
@@ -128,6 +140,11 @@ function createSystemLogsStore() {
             msg,
             remoteData.details || ''
           );
+
+          // Play notification chime for SUCCESS / WARNING / INFO alerts from remote users
+          if (remoteData.type === 'SUCCESS' || remoteData.type === 'WARNING' || remoteData.type === 'INFO') {
+            playAlertSound();
+          }
         });
       }
 
