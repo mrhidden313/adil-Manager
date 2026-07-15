@@ -3,6 +3,7 @@ import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { supabase } from '../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
+import { sendPushToUser } from './push.controller';
 
 export const createPayout = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -56,7 +57,7 @@ export const createPayout = async (req: AuthRequest, res: Response): Promise<voi
       }
     });
 
-    // Notify agent
+    // Notify agent via in-app & push
     await prisma.notification.create({
       data: {
         companyId,
@@ -66,12 +67,19 @@ export const createPayout = async (req: AuthRequest, res: Response): Promise<voi
       }
     });
 
+    sendPushToUser(agentId, {
+      title: '💸 Payout Sent by Manager!',
+      body: `You received a payout of PKR ${paymentAmount.toLocaleString()}. Tap to approve.`,
+      url: '/sales'
+    });
+
     res.status(201).json({ message: 'Payout created successfully', payout });
   } catch (error) {
     console.error('Create payout error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 export const listPayouts = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -132,6 +140,20 @@ export const approvePayout = async (req: AuthRequest, res: Response): Promise<vo
       where: { id: payoutId },
       data: { status: 'APPROVED' }
     });
+
+    // Notify managers
+    prisma.user.findMany({
+      where: { companyId: payout.companyId, role: { in: ['MANAGER', 'SUPER_ADMIN'] } },
+      select: { id: true }
+    }).then(managers => {
+      managers.forEach(mgr => {
+        sendPushToUser(mgr.id, {
+          title: '✅ Payout Approved!',
+          body: `Agent approved payout of PKR ${payout.amount.toLocaleString()}.`,
+          url: '/manager'
+        });
+      });
+    }).catch(err => console.error('Error sending push on payout approve:', err));
 
     res.json({ message: 'Payout approved successfully', payout: updatedPayout });
   } catch (error) {

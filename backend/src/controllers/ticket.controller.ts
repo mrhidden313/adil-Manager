@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth.middleware';
 import { supabase } from '../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 import { io } from '../socket';
+import { sendPushToUser } from './push.controller';
 
 export const createTicket = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -105,12 +106,27 @@ export const createTicket = async (req: AuthRequest, res: Response): Promise<voi
       details: `Proof uploaded successfully. Order #${ticket.id.substring(0, 8)} created.`
     });
 
+    // Notify all Managers of this company via Web Push
+    prisma.user.findMany({
+      where: { companyId, role: { in: ['MANAGER', 'SUPER_ADMIN'] } },
+      select: { id: true }
+    }).then(managers => {
+      managers.forEach(mgr => {
+        sendPushToUser(mgr.id, {
+          title: '🚀 New Order Submitted!',
+          body: `Order #${transactionId} (${ticketPrice} PKR) submitted by ${req.user?.name || 'Sales Agent'}`,
+          url: '/manager'
+        });
+      });
+    }).catch(err => console.error('Error sending push to managers:', err));
+
     res.status(201).json({ message: 'Ticket created', ticket });
   } catch (error) {
     console.error('Create ticket error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 export const listTickets = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -233,6 +249,24 @@ export const updateTicketStatus = async (req: AuthRequest, res: Response): Promi
       message: `Order Status Changed to ${updatedTicket.status} (TXN #${existingTicket.transactionId})`,
       details: `Updated by ${req.user?.name || role}. Order ID: #${updatedTicket.id.substring(0, 8)}`
     });
+
+    // Notify assigned local agent if assignment changed/set
+    if (updatedTicket.assignedToId && updatedTicket.assignedToId !== existingTicket.assignedToId) {
+      sendPushToUser(updatedTicket.assignedToId, {
+        title: '📦 Order Assigned to You!',
+        body: `Order #${existingTicket.transactionId} has been assigned for fulfillment.`,
+        url: '/fulfillment'
+      });
+    }
+
+    // Notify sales agent who created the ticket when status changes to APPROVED / COMPLETED / REJECTED
+    if (updatedTicket.status !== existingTicket.status && updatedTicket.createdById) {
+      sendPushToUser(updatedTicket.createdById, {
+        title: `Order ${updatedTicket.status} 🔔`,
+        body: `Your order #${existingTicket.transactionId} status changed to ${updatedTicket.status}.`,
+        url: '/sales'
+      });
+    }
 
     res.json({ message: 'Ticket updated', ticket: updatedTicket });
   } catch (error) {

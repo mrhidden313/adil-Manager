@@ -1,6 +1,7 @@
 <script lang="ts">
   import '../app.css';
   import Toast from '$lib/components/Toast.svelte';
+  import NotificationBanner from '$lib/components/NotificationBanner.svelte';
   import { systemLogs } from '$lib/stores/systemLogs';
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
@@ -23,7 +24,9 @@
 </script>
 
 <Toast />
+<NotificationBanner />
 {#key $page.url.pathname}
+
   <div in:fade={{ duration: 250, delay: 50 }}>
     <slot />
   </div>
