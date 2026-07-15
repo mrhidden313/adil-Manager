@@ -33,6 +33,67 @@
   let proofFile: FileList | null = $state(null);
   let isSubmitting = $state(false);
 
+  // Edit Order state
+  let showEditModal = $state(false);
+  let editingTicket: any = $state(null);
+  let editName = $state('');
+  let editPhone = $state('');
+  let editTicketNumber = $state('');
+  let editNotes = $state('');
+  let editPaymentMethod = $state('EASYPAISA');
+  let editBankType = $state('');
+  let isEditSubmitting = $state(false);
+
+  function openEditModal(ticket: any, e: Event) {
+    e.stopPropagation();
+    editingTicket = ticket;
+    const gd = ticket.genericData || {};
+    editName = gd.name || '';
+    editPhone = gd.phone || '';
+    editTicketNumber = gd.ticketNumber || '';
+    editNotes = gd.notes || '';
+    editPaymentMethod = gd.paymentMethod || 'EASYPAISA';
+    editBankType = gd.bankType || '';
+    showEditModal = true;
+  }
+
+  async function submitEditTicket(e: Event) {
+    e.preventDefault();
+    if (!editingTicket) return;
+    isEditSubmitting = true;
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/tickets/${editingTicket.id}/edit`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          name: editName,
+          phone: editPhone,
+          ticketNumber: editTicketNumber,
+          notes: editNotes,
+          paymentMethod: editPaymentMethod,
+          bankType: editBankType
+        })
+      });
+      if (res.ok) {
+        toast.add('Order updated successfully!', 'success');
+        showEditModal = false;
+        fetchData();
+      } else {
+        const err = await res.json();
+        toast.add(err.error || 'Failed to update order', 'error');
+      }
+    } catch {
+      toast.add('Network error', 'error');
+    } finally {
+      isEditSubmitting = false;
+    }
+  }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).then(() => toast.add('Copied to clipboard!', 'success'));
+  }
+
   let showNotifications = $state(false);
 
   let activeTab = $state('ORDERS'); // ORDERS, PAYOUTS
@@ -389,22 +450,37 @@
                 <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b {ticket.status === 'COMPLETED' ? 'from-emerald-400 to-emerald-600' : ticket.status === 'APPROVED' ? 'from-indigo-400 to-indigo-600' : 'from-amber-400 to-amber-600'}"></div>
                 <div class="flex-1 pl-4">
                   <h3 class="font-bold text-slate-800 text-lg">{ticket.genericData?.name || ticket.transactionId}</h3>
-                  <div class="flex items-center space-x-3 mt-1">
+                  <div class="flex items-center flex-wrap gap-2 mt-1">
                     <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-xs font-bold border border-emerald-100">
                       PKR {ticket.price}
                     </span>
                     <span class="text-xs font-medium text-slate-500">Bonus: <span class="font-bold {ticket.bonusStatus === 'PAID' ? 'text-emerald-600' : 'text-amber-500'}">PKR {ticket.bonusAmount} ({ticket.bonusStatus})</span></span>
+                    {#if ticket.genericData?.phone}
+                      <div class="flex items-center gap-1">
+                        <span class="text-xs font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded">{ticket.genericData.phone}</span>
+                        <button onclick={(e) => { e.stopPropagation(); copyToClipboard(ticket.genericData.phone); }} class="p-0.5 text-slate-400 hover:text-emerald-600 transition-colors" title="Copy number">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        </button>
+                      </div>
+                    {/if}
                   </div>
                   <p class="text-xs text-slate-400 mt-2">{new Date(ticket.createdAt).toLocaleDateString()}</p>
                 </div>
-                <div>
+                <div class="flex flex-col items-end gap-2">
                   <span class={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border ${
                     ticket.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                     ticket.status === 'APPROVED' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                    ticket.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
                     'bg-emerald-50 text-emerald-700 border-emerald-200'
                   }`}>
                     {ticket.status}
                   </span>
+                  {#if ticket.status === 'PENDING'}
+                    <button onclick={(e) => openEditModal(ticket, e)} class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      Edit
+                    </button>
+                  {/if}
                 </div>
               </div>
             {/each}
@@ -706,6 +782,83 @@
           <div class="pt-2">
             <button type="submit" disabled={isSubmitting} class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-sm shadow-indigo-600/20 text-sm">
               {isSubmitting ? 'Uploading...' : 'Submit Order'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Edit Order Modal (Sales Agent — PENDING only) -->
+{#if showEditModal && editingTicket}
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-white relative">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+        <div>
+          <h2 class="text-xl font-bold text-slate-800">Edit Order</h2>
+          <p class="text-xs text-slate-500 mt-0.5">TXN #{editingTicket.transactionId?.substring(0, 20)}</p>
+        </div>
+        <button class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full transition-colors" onclick={() => showEditModal = false}>
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto bg-slate-50/50">
+        <form onsubmit={submitEditTicket} class="space-y-4">
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Customer Name</label>
+            <input type="text" bind:value={editName} required placeholder="Customer name" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">WhatsApp / Phone Number</label>
+            <div class="flex items-center gap-2">
+              <input type="tel" bind:value={editPhone} placeholder="+923001234567" class="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+              <button type="button" onclick={() => copyToClipboard(editPhone)} class="p-3 bg-slate-100 hover:bg-emerald-50 text-slate-500 hover:text-emerald-600 rounded-xl border border-slate-200 transition-colors" title="Copy">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Number of Tickets</label>
+            <input type="number" bind:value={editTicketNumber} min="1" placeholder="e.g. 10" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Payment Method</label>
+            <select bind:value={editPaymentMethod} class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm font-medium">
+              <option value="EASYPAISA">EasyPaisa</option>
+              <option value="JAZZCASH">JazzCash</option>
+              <option value="BANK">Bank Transfer</option>
+            </select>
+          </div>
+
+          {#if editPaymentMethod === 'BANK'}
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Bank Name</label>
+              <input type="text" bind:value={editBankType} placeholder="e.g. HBL, Meezan" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+            </div>
+          {/if}
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Notes (Optional)</label>
+            <textarea bind:value={editNotes} placeholder="Additional notes..." rows="2" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm resize-none"></textarea>
+          </div>
+
+          <div class="flex gap-3 pt-2">
+            <button type="button" onclick={() => showEditModal = false} class="flex-1 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors text-sm">Cancel</button>
+            <button type="submit" disabled={isEditSubmitting} class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-sm text-sm flex items-center justify-center gap-2">
+              {#if isEditSubmitting}
+                <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <span>Saving...</span>
+              {:else}
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                <span>Save Changes</span>
+              {/if}
             </button>
           </div>
         </form>

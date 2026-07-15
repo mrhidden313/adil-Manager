@@ -39,6 +39,70 @@
   let notifications: any[] = $state([]);
   let showNotifications = $state(false);
 
+  // Manager edit ticket state
+  let editMode = $state(false);
+  let editMgrName = $state('');
+  let editMgrPhone = $state('');
+  let editMgrTicketNumber = $state('');
+  let editMgrNotes = $state('');
+  let editMgrPaymentMethod = $state('EASYPAISA');
+  let editMgrBankType = $state('');
+  let editMgrPrice = $state('');
+  let isEditSaving = $state(false);
+
+  function openTicketEditMode() {
+    if (!selectedTicket) return;
+    const gd = selectedTicket.genericData || {};
+    editMgrName = gd.name || '';
+    editMgrPhone = gd.phone || '';
+    editMgrTicketNumber = gd.ticketNumber || '';
+    editMgrNotes = gd.notes || '';
+    editMgrPaymentMethod = gd.paymentMethod || 'EASYPAISA';
+    editMgrBankType = gd.bankType || '';
+    editMgrPrice = String(selectedTicket.price || '');
+    editMode = true;
+  }
+
+  async function saveManagerEdit() {
+    if (!selectedTicket) return;
+    isEditSaving = true;
+    try {
+      const token = getAuthToken();
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/tickets/${selectedTicket.id}/edit`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          name: editMgrName,
+          phone: editMgrPhone,
+          ticketNumber: editMgrTicketNumber,
+          notes: editMgrNotes,
+          paymentMethod: editMgrPaymentMethod,
+          bankType: editMgrBankType,
+          price: editMgrPrice
+        })
+      });
+      if (res.ok) {
+        toast.add('Order updated successfully!', 'success');
+        editMode = false;
+        fetchData();
+        // Refresh selected ticket data locally
+        const updated = await res.json();
+        selectedTicket = { ...selectedTicket, ...updated.ticket };
+      } else {
+        const err = await res.json();
+        toast.add(err.error || 'Failed to update order', 'error');
+      }
+    } catch {
+      toast.add('Network error', 'error');
+    } finally {
+      isEditSaving = false;
+    }
+  }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).then(() => toast.add('Copied!', 'success'));
+  }
+
   let activeTab = $state('ORDERS'); // ORDERS, PAYOUTS
   let ordersTab = $state('PENDING'); // PENDING, APPROVED, COMPLETED
 
@@ -497,12 +561,81 @@
   <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
-        <h2 class="text-xl font-black text-slate-800">Review Order</h2>
-        <button class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full hover:bg-slate-100 transition-colors" onclick={() => showTicketModal = false}><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        <h2 class="text-xl font-black text-slate-800">{editMode ? '✏️ Edit Order' : 'Review Order'}</h2>
+        <div class="flex items-center gap-2">
+          {#if !editMode}
+            <button onclick={openTicketEditMode} class="p-2 rounded-xl text-indigo-600 hover:bg-indigo-50 border border-indigo-200 transition-colors" title="Edit order details">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+          {:else}
+            <button onclick={() => editMode = false} class="p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors" title="Cancel editing">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          {/if}
+          <button class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full hover:bg-slate-100 transition-colors" onclick={() => { showTicketModal = false; editMode = false; }}><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
       </div>
       
       <div class="p-6 overflow-y-auto flex-1 bg-slate-50/50">
-        {#if selectedTicket.genericData}
+        {#if editMode}
+          <!-- ── EDIT MODE ──────────────────────────────── -->
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Customer Name</label>
+              <input type="text" bind:value={editMgrName} class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">WhatsApp / Phone</label>
+              <div class="flex gap-2">
+                <input type="tel" bind:value={editMgrPhone} class="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+                <button type="button" onclick={() => copyToClipboard(editMgrPhone)} class="p-3 bg-slate-100 hover:bg-emerald-50 text-slate-500 hover:text-emerald-600 rounded-xl border border-slate-200 transition-colors" title="Copy">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Tickets</label>
+                <input type="number" bind:value={editMgrTicketNumber} min="1" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Price (PKR)</label>
+                <input type="number" bind:value={editMgrPrice} min="0" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Payment Method</label>
+              <select bind:value={editMgrPaymentMethod} class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm font-medium">
+                <option value="EASYPAISA">EasyPaisa</option>
+                <option value="JAZZCASH">JazzCash</option>
+                <option value="BANK">Bank Transfer</option>
+              </select>
+            </div>
+            {#if editMgrPaymentMethod === 'BANK'}
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Bank Name</label>
+                <input type="text" bind:value={editMgrBankType} placeholder="e.g. HBL, Meezan" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm">
+              </div>
+            {/if}
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wide">Notes</label>
+              <textarea bind:value={editMgrNotes} rows="2" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm resize-none"></textarea>
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button type="button" onclick={() => editMode = false} class="flex-1 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors text-sm">Cancel</button>
+              <button type="button" onclick={saveManagerEdit} disabled={isEditSaving} class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 disabled:opacity-50 shadow-sm transition-colors text-sm flex items-center justify-center gap-2">
+                {#if isEditSaving}
+                  <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  <span>Saving...</span>
+                {:else}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                  <span>Save Changes</span>
+                {/if}
+              </button>
+            </div>
+          </div>
+        {:else}
+          <!-- ── VIEW MODE ──────────────────────────────── -->
           <div class="mb-5 bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
             <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Order Details</span>
             <div class="grid grid-cols-2 gap-4">
@@ -525,8 +658,11 @@
               {#if selectedTicket.genericData?.phone}
               <div class="col-span-2 mt-1">
                 <span class="block text-[10px] uppercase text-slate-400 font-bold mb-2">Customer Phone / WhatsApp</span>
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2 flex-wrap gap-2">
                   <span class="text-slate-800 font-mono font-bold bg-slate-100 px-3 py-2 rounded-lg">{selectedTicket.genericData.phone}</span>
+                  <button onclick={() => copyToClipboard(selectedTicket.genericData.phone)} class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg transition-colors" title="Copy number">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  </button>
                   <a href={`https://wa.me/${selectedTicket.genericData.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold px-4 py-2 rounded-lg transition-colors text-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
                     <span>Message</span>
@@ -549,7 +685,7 @@
           </div>
         {/if}
 
-        {#if selectedTicket.paymentProofUrl}
+        {#if !editMode && selectedTicket.paymentProofUrl}
           <div class="mb-5">
             <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Customer Payment Proof</span>
             <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -560,7 +696,7 @@
           </div>
         {/if}
 
-        {#if selectedTicket.status === 'PENDING'}
+        {#if !editMode && selectedTicket.status === 'PENDING'}
           <div class="mb-2">
             <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Assign Local Agent</span>
             <select bind:value={assignToId} class="block w-full rounded-xl border-slate-200 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-medium p-3 outline-none">
@@ -582,13 +718,13 @@
           </div>
         {/if}
       </div>
-      
-      {#if selectedTicket.status === 'PENDING'}
+
+      {#if !editMode && selectedTicket.status === 'PENDING'}
         <div class="p-6 border-t border-slate-100 bg-white flex space-x-3">
           <button onclick={() => updateStatus('REJECTED')} disabled={isSubmitting} class="flex-1 bg-rose-50 border border-rose-200 text-rose-700 font-bold py-3 px-4 rounded-xl hover:bg-rose-100 disabled:opacity-50 transition-colors">Reject</button>
           <button onclick={() => updateStatus('APPROVED')} disabled={isSubmitting || (fulfillmentAgents.length === 0)} class="flex-1 bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors">{isSubmitting ? 'Approving...' : 'Approve'}</button>
         </div>
-      {:else if selectedTicket.status === 'REJECTED'}
+      {:else if !editMode && selectedTicket.status === 'REJECTED'}
         <div class="p-6 border-t border-slate-100 bg-white flex flex-col sm:flex-row gap-3 items-center justify-between">
           <span class="text-xs font-bold text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">This order was rejected.</span>
           <button onclick={() => updateStatus('PENDING', null)} disabled={isSubmitting} class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-sm transition-colors flex items-center justify-center space-x-2">
@@ -596,7 +732,7 @@
             <span>Restore to Pending</span>
           </button>
         </div>
-      {:else if selectedTicket.status === 'APPROVED'}
+      {:else if !editMode && selectedTicket.status === 'APPROVED'}
         <div class="p-6 border-t border-slate-100 bg-white flex flex-col sm:flex-row gap-3">
           <button onclick={() => updateStatus('PENDING', null)} disabled={isSubmitting} class="flex-1 bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 font-bold py-3 px-4 rounded-xl transition-colors flex items-center justify-center space-x-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
@@ -612,6 +748,7 @@
     </div>
   </div>
 {/if}
+
 
 {#if showPayoutModal && selectedAgentForPayout}
   <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">

@@ -240,3 +240,76 @@ export const updateTicketStatus = async (req: AuthRequest, res: Response): Promi
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// ─── Edit ticket details (NOT status) ────────────────────────────────────────
+export const editTicket = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const userId = req.user!.id;
+    const role = req.user!.role;
+    const companyId = req.user!.companyId;
+
+    const ticket = await prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) {
+      res.status(404).json({ error: 'Ticket not found' });
+      return;
+    }
+
+    // SALES: can only edit their own PENDING tickets
+    if (role === 'SALES') {
+      if (ticket.createdById !== userId) {
+        res.status(403).json({ error: 'You can only edit your own orders' });
+        return;
+      }
+      if (ticket.status !== 'PENDING') {
+        res.status(403).json({ error: 'Only PENDING orders can be edited' });
+        return;
+      }
+    }
+
+    // MANAGER / SUPER_ADMIN: can edit any ticket in their company
+    if (role === 'MANAGER' && ticket.companyId !== companyId) {
+      res.status(403).json({ error: 'Not authorized for this ticket' });
+      return;
+    }
+
+    const { name, phone, ticketNumber, notes, paymentMethod, bankType, price } = req.body;
+
+    // Merge into existing genericData
+    const existingGeneric = (ticket.genericData as any) || {};
+    const updatedGeneric = {
+      ...existingGeneric,
+      ...(name !== undefined && { name }),
+      ...(phone !== undefined && { phone }),
+      ...(ticketNumber !== undefined && { ticketNumber }),
+      ...(notes !== undefined && { notes }),
+      ...(paymentMethod !== undefined && { paymentMethod }),
+      ...(bankType !== undefined && { bankType }),
+    };
+
+    const updateData: any = { genericData: updatedGeneric };
+
+    // Only MANAGER / SUPER_ADMIN can change price
+    if ((role === 'MANAGER' || role === 'SUPER_ADMIN') && price !== undefined) {
+      const newPrice = parseFloat(price);
+      updateData.price = newPrice;
+      updateData.bonusAmount = newPrice * 0.1;
+    }
+
+    const updated = await prisma.ticket.update({ where: { id }, data: updateData });
+
+    io.to(`company_${ticket.companyId}`).emit('global_log_broadcast', {
+      type: 'INFO',
+      userName: req.user?.name || 'Agent',
+      userRole: role,
+      message: `Order Details Edited: TXN #${ticket.transactionId}`,
+      details: `Edited by ${req.user?.name}. Fields updated.`
+    });
+
+    res.json({ message: 'Ticket edited', ticket: updated });
+  } catch (error) {
+    console.error('Edit ticket error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
