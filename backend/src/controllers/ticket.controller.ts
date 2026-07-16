@@ -137,8 +137,19 @@ export const listTickets = async (req: AuthRequest, res: Response): Promise<void
 
     const includeData = { 
       createdBy: { select: { name: true, role: true, email: true } },
-      assignedTo: { select: { name: true, role: true, email: true } }
+      assignedTo: { select: { name: true, role: true, email: true } },
+      auditLogs: {
+        orderBy: { createdAt: 'asc' },
+        select: {
+          action: true,
+          previousStatus: true,
+          newStatus: true,
+          createdAt: true,
+          user: { select: { name: true, role: true } }
+        }
+      }
     };
+
 
     if (role === 'SUPER_ADMIN') {
       tickets = await prisma.ticket.findMany({ include: includeData });
@@ -252,12 +263,23 @@ export const updateTicketStatus = async (req: AuthRequest, res: Response): Promi
 
     // Notify assigned local agent if assignment changed/set
     if (updatedTicket.assignedToId && updatedTicket.assignedToId !== existingTicket.assignedToId) {
+      await prisma.auditLog.create({
+        data: {
+          ticketId: updatedTicket.id,
+          userId: userId,
+          companyId: updatedTicket.companyId,
+          action: 'ASSIGNED',
+          previousStatus: existingTicket.status,
+          newStatus: updatedTicket.status
+        }
+      });
       sendPushToUser(updatedTicket.assignedToId, {
         title: '📦 Order Assigned to You!',
         body: `Order #${existingTicket.transactionId} has been assigned for fulfillment.`,
         url: '/fulfillment'
       });
     }
+
 
     // Notify sales agent who created the ticket when status changes to APPROVED / COMPLETED / REJECTED
     if (updatedTicket.status !== existingTicket.status && updatedTicket.createdById) {

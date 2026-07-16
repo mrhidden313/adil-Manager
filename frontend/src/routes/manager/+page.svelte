@@ -7,7 +7,9 @@
   import BottomNav from '$lib/components/BottomNav.svelte';
   import Lightbox from '$lib/components/Lightbox.svelte';
   import LiveLogsTerminal from '$lib/components/LiveLogsTerminal.svelte';
+  import TicketHistoryPopover from '$lib/components/TicketHistoryPopover.svelte';
   import { requireRoleGuard, getAuthToken } from '$lib/utils/auth';
+
   
 
 
@@ -485,8 +487,13 @@
                     {#if ticket.assignedTo}
                       <span class="text-indigo-600 font-semibold">• Assigned Agent: {ticket.assignedTo.name}</span>
                     {/if}
+                    <div class="flex items-center gap-1.5 text-slate-400">
+                      <span>{new Date(ticket.createdAt).toLocaleDateString()}</span>
+                      <TicketHistoryPopover {ticket} />
+                    </div>
                   </div>
                 </div>
+
                 {#if ticket.status === 'REJECTED' || ticket.status === 'APPROVED'}
                   <div class="flex items-center gap-2 pl-4 sm:pl-0" onclick={(e) => { e.stopPropagation(); selectedTicket = ticket; updateStatus('PENDING', null); }}>
                     <button class="px-3 py-2 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1.5 {ticket.status === 'REJECTED' ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200'} shadow-sm">
@@ -641,8 +648,15 @@
         {:else}
           <!-- ── VIEW MODE ──────────────────────────────── -->
           <div class="mb-5 bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-            <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Order Details</span>
+            <div class="flex items-center justify-between mb-3">
+              <span class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Order Details</span>
+              <div class="flex items-center gap-1.5 text-xs text-slate-400">
+                <span>Timestamps History:</span>
+                <TicketHistoryPopover ticket={selectedTicket} />
+              </div>
+            </div>
             <div class="grid grid-cols-2 gap-4">
+
               <div><span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Customer Name</span><span class="text-slate-800 font-semibold">{selectedTicket.genericData.name || 'N/A'}</span></div>
               <div><span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Total Amount</span><span class="text-emerald-600 font-bold">PKR {selectedTicket.price}</span></div>
               <div><span class="block text-[10px] uppercase text-slate-400 font-bold mb-1">Agent Bonus (10%)</span><span class="text-rose-600 font-bold">PKR {selectedTicket.bonusAmount}</span></div>

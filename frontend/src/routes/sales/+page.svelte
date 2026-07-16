@@ -5,7 +5,9 @@
   import ProfileModal from '$lib/components/ProfileModal.svelte';
   import BottomNav from '$lib/components/BottomNav.svelte';
   import Lightbox from '$lib/components/Lightbox.svelte';
+  import TicketHistoryPopover from '$lib/components/TicketHistoryPopover.svelte';
   import { getAuthToken, isImpersonatingSession, exitImpersonation, requireRoleGuard } from '$lib/utils/auth';
+
 
   let tickets: any[] = $state([]);
   let payouts: any[] = $state([]);
@@ -468,8 +470,12 @@
                       </div>
                     {/if}
                   </div>
-                  <p class="text-xs text-slate-400 mt-2">{new Date(ticket.createdAt).toLocaleDateString()}</p>
+                  <div class="text-xs text-slate-400 mt-2 flex items-center gap-1.5">
+                    <span>{new Date(ticket.createdAt).toLocaleDateString()}</span>
+                    <TicketHistoryPopover {ticket} />
+                  </div>
                 </div>
+
                 <div class="flex flex-col items-end gap-2">
                   <span class={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border ${
                     ticket.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-200' :

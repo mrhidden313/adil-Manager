@@ -4,7 +4,9 @@
   import ProfileModal from '$lib/components/ProfileModal.svelte';
   import BottomNav from '$lib/components/BottomNav.svelte';
   import Lightbox from '$lib/components/Lightbox.svelte';
+  import TicketHistoryPopover from '$lib/components/TicketHistoryPopover.svelte';
   import { ripple } from '$lib/actions/ripple';
+
   import { getAuthToken, requireRoleGuard, isImpersonatingSession, exitImpersonation } from '$lib/utils/auth';
 
   let tickets: any[] = $state([]);
@@ -305,8 +307,12 @@
                     }`}>
                       {ticket.status}
                     </span>
-                    <span class="text-xs font-bold text-slate-400">{new Date(ticket.updatedAt).toLocaleDateString()}</span>
+                    <div class="flex items-center gap-1.5 text-slate-400">
+                      <span class="text-xs font-bold">{new Date(ticket.updatedAt).toLocaleDateString()}</span>
+                      <TicketHistoryPopover {ticket} />
+                    </div>
                   </div>
+
                   
                   <h3 class="font-bold text-slate-800 text-lg mb-1">{ticket.genericData?.name || ticket.transactionId}</h3>
                   {#if ticket.genericData?.ticketNumber}
@@ -362,8 +368,15 @@
       <div class="p-6 overflow-y-auto bg-slate-50/50 space-y-4">
         <!-- Customer Info — NO payment screenshot for local agents -->
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Order Details</span>
+          <div class="flex items-center justify-between mb-3">
+            <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Order Details</span>
+            <div class="flex items-center gap-1.5 text-xs text-slate-400">
+              <span>Timestamps History:</span>
+              <TicketHistoryPopover ticket={selectedTicket} />
+            </div>
+          </div>
           <div class="space-y-3">
+
             <div>
               <span class="block text-[10px] uppercase text-slate-400 font-bold mb-0.5">Customer Name</span>
               <span class="text-slate-800 font-bold text-base">{selectedTicket.genericData?.name || selectedTicket.transactionId}</span>
