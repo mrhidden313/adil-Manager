@@ -26,7 +26,8 @@
     // Check audit logs for CREATED action first, otherwise ticket.createdAt
     if (ticket?.auditLogs && Array.isArray(ticket.auditLogs)) {
       const createdLog = ticket.auditLogs.find((l: any) => l.action === 'CREATED');
-      if (createdLog?.createdAt) return formatDate(createdLog.createdAt);
+      const time = createdLog?.timestamp || createdLog?.createdAt;
+      if (time) return formatDate(time);
     }
     return formatDate(ticket?.createdAt);
   });
@@ -34,7 +35,8 @@
   let assignedFormatted = $derived.by(() => {
     if (ticket?.auditLogs && Array.isArray(ticket.auditLogs)) {
       const assignedLog = ticket.auditLogs.find((l: any) => l.action === 'ASSIGNED' || (l.action === 'STATUS_UPDATED' && l.newStatus === 'APPROVED'));
-      if (assignedLog?.createdAt) return formatDate(assignedLog.createdAt);
+      const time = assignedLog?.timestamp || assignedLog?.createdAt;
+      if (time) return formatDate(time);
     }
     if (ticket?.assignedToId || ticket?.assignedTo) {
       return formatDate(ticket?.updatedAt || ticket?.createdAt);
@@ -45,13 +47,15 @@
   let completedFormatted = $derived.by(() => {
     if (ticket?.auditLogs && Array.isArray(ticket.auditLogs)) {
       const completedLog = ticket.auditLogs.find((l: any) => l.newStatus === 'COMPLETED');
-      if (completedLog?.createdAt) return formatDate(completedLog.createdAt);
+      const time = completedLog?.timestamp || completedLog?.createdAt;
+      if (time) return formatDate(time);
     }
     if (ticket?.status === 'COMPLETED') {
       return formatDate(ticket?.updatedAt);
     }
     return 'Not completed yet';
   });
+
 
   function toggle(e: MouseEvent) {
     e.stopPropagation();

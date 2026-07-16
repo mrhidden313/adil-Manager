@@ -139,17 +139,17 @@ export const listTickets = async (req: AuthRequest, res: Response): Promise<void
       createdBy: { select: { name: true, role: true, email: true } },
       assignedTo: { select: { name: true, role: true, email: true } },
       auditLogs: {
-        orderBy: { createdAt: 'asc' },
-
+        orderBy: { timestamp: 'asc' },
         select: {
           action: true,
           previousStatus: true,
           newStatus: true,
-          createdAt: true,
+          timestamp: true,
           user: { select: { name: true, role: true } }
         }
       }
     };
+
 
 
     if (role === 'SUPER_ADMIN') {
