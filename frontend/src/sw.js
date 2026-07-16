@@ -21,18 +21,20 @@ self.addEventListener('push', (event) => {
       tag: data.tag || 'notification-' + Date.now()
     };
 
-    // Notify any open browser tabs to play the sound right away
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      clients.forEach((client) => {
-        client.postMessage({
-          type: 'PLAY_NOTIFICATION_SOUND',
-          title: title,
-          body: data.body
-        });
-      });
-    });
-
-    event.waitUntil(self.registration.showNotification(title, options));
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+        const isVisible = clients.some((client) => client.visibilityState === 'visible');
+        if (isVisible) {
+          // If the application tab is open and currently visible to the user,
+          // suppress OS-level push notification banner so the user isn't doubly interrupted while inside the app.
+          return;
+        } else {
+          // If the app is minimized, closed, or running in a background tab,
+          // show the OS push notification banner and play alert sound to wake up the user.
+          return self.registration.showNotification(title, options);
+        }
+      })
+    );
   } catch (err) {
     console.error('Error parsing push data', err);
   }
