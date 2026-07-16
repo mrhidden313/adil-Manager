@@ -135,11 +135,12 @@ export const listTickets = async (req: AuthRequest, res: Response): Promise<void
 
     const companyIdStr = companyId as string;
 
-    const includeData = { 
+    const includeData: any = { 
       createdBy: { select: { name: true, role: true, email: true } },
       assignedTo: { select: { name: true, role: true, email: true } },
       auditLogs: {
         orderBy: { createdAt: 'asc' },
+
         select: {
           action: true,
           previousStatus: true,
