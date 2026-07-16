@@ -264,9 +264,11 @@
         const num = parseInt(t.genericData?.ticketNumber);
         return sum + (!isNaN(num) && num >= 0 ? num : 1);
       }, 0);
-      return { total: assigned.length, pendingWork, completedWork: completedWorkCount, totalTickets, completedTicketsCount };
+      const earnedBonus = completedTicketsCount * 2;
+      return { total: assigned.length, pendingWork, completedWork: completedWorkCount, totalTickets, completedTicketsCount, earnedBonus };
     }
   }
+
 
 </script>
 
@@ -577,13 +579,20 @@
           </div>
         {:else}
           {@const stats = getAgentStats(selectedAgent)}
+          {@const agentPayouts = allPayouts.filter(p => p.agentId === selectedAgent.id)}
+          {@const paidBonus = agentPayouts.filter(p => p.status === 'APPROVED').reduce((sum, p) => sum + p.amount, 0)}
+          {@const pendingBonus = stats.earnedBonus - agentPayouts.filter(p => p.status !== 'REJECTED').reduce((sum, p) => sum + p.amount, 0)}
+
           <div class="space-y-3">
 
             <!-- Confirmed Tickets Banner -->
             <div class="p-5 rounded-2xl text-white relative overflow-hidden" style="background: linear-gradient(135deg, rgba(16,185,129,0.6), rgba(5,150,105,0.6)); backdrop-filter: blur(8px); border: 1px solid rgba(16,185,129,0.3);">
               <div class="absolute right-0 top-0 w-24 h-24 bg-white/10 rounded-bl-full"></div>
-              <p class="text-[10px] font-bold uppercase tracking-wide text-white/80 mb-1">Total Confirmed Tickets (Physical)</p>
-              <span class="text-3xl font-black">{stats.completedTicketsCount}</span>
+              <p class="text-[10px] font-bold uppercase tracking-wide text-white/80 mb-1">Total Confirmed Tickets (Physical @ 2 PKR/ticket)</p>
+              <div class="flex items-baseline justify-between">
+                <span class="text-3xl font-black">{stats.completedTicketsCount} Tickets</span>
+                <span class="text-sm font-bold text-white/90">Total Earned: PKR {stats.earnedBonus.toLocaleString()}</span>
+              </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -602,21 +611,78 @@
                 <p class="text-[10px] font-bold text-cyan-600 uppercase tracking-wide">Total Tickets (All)</p>
               </div>
 
-              <!-- Completed Orders -->
-              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(52,211,153,0.1)); border: 1px solid rgba(16,185,129,0.2);">
-                <p class="text-2xl font-black text-emerald-700">{stats.completedWork}</p>
-                <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Completed Orders</p>
+              <!-- Pending Bonus -->
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(244,63,94,0.1), rgba(251,113,133,0.1)); border: 1px solid rgba(244,63,94,0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
+                <p class="text-[10px] font-bold text-rose-600 uppercase tracking-wide mb-1">Pending Bonus</p>
+                <div>
+                  <span class="text-xs font-semibold text-rose-500">PKR </span>
+                  <span class="text-2xl font-black text-rose-700">{pendingBonus.toLocaleString()}</span>
+                </div>
               </div>
 
-              <!-- Work Pending -->
-              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(251,191,36,0.1)); border: 1px solid rgba(245,158,11,0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
-                <p class="text-2xl font-black text-amber-700">{stats.pendingWork}</p>
-                <p class="text-[10px] font-bold text-amber-600 uppercase tracking-wide">Work Pending</p>
+              <!-- Paid Bonus -->
+              <div class="p-4 rounded-2xl relative overflow-hidden" style="background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1)); border: 1px solid rgba(99,102,241,0.2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
+                <p class="text-[10px] font-bold text-indigo-600 uppercase tracking-wide mb-1">Total Paid Bonus</p>
+                <div>
+                  <span class="text-xs font-semibold text-indigo-500">PKR </span>
+                  <span class="text-2xl font-black text-indigo-700">{paidBonus.toLocaleString()}</span>
+                </div>
               </div>
 
             </div>
           </div>
+
+          <!-- Pay Bonus section for Local Agent -->
+          <div class="mt-6 bg-indigo-50 border border-indigo-200 p-5 rounded-2xl shadow-sm">
+            {#if selectedAgent.paymentAccountType}
+              <div class="mb-4 pb-4 border-b border-indigo-100">
+                <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Agent Payment Details</p>
+                <div class="flex justify-between items-center bg-white p-3 rounded-xl border border-indigo-100">
+                  <span class="text-sm font-bold text-slate-800">{selectedAgent.paymentAccountType}</span>
+                  <span class="text-sm font-mono text-indigo-700 bg-indigo-50 px-2 py-1 rounded">{selectedAgent.paymentAccountNumber || 'N/A'}</span>
+                </div>
+              </div>
+            {:else}
+              <div class="mb-4 pb-4 border-b border-indigo-100">
+                <p class="text-xs text-rose-500 font-medium">⚠️ Agent hasn't set up payment details yet.</p>
+              </div>
+            {/if}
+            
+            <div class="flex justify-between items-end mb-2">
+              <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">Pay Bonus (PKR)</p>
+              <div class="text-right">
+                <p class="text-xs font-medium text-slate-500">Total Pending: <span class="font-bold text-rose-600">PKR {pendingBonus.toLocaleString()}</span></p>
+                {#if payBonusAmount && !isNaN(parseFloat(payBonusAmount))}
+                  <p class="text-[10px] font-bold text-emerald-600 mt-0.5 border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 rounded">Remaining after: PKR {(pendingBonus - parseFloat(payBonusAmount)).toLocaleString()}</p>
+                {/if}
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label class="block text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Upload Transfer Screenshot</label>
+              <input type="file" accept="image/*" onchange={handleProofSelect} class="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 transition-all cursor-pointer border border-indigo-200 rounded-xl bg-white" />
+            </div>
+            
+            {#if payoutProofPreview}
+              <div class="mb-3 rounded-xl overflow-hidden border border-indigo-200 shadow-sm relative">
+                <img src={payoutProofPreview} alt="Preview" class="w-full h-32 object-cover">
+              </div>
+            {/if}
+
+            <div class="flex gap-2">
+              <input type="number" bind:value={payBonusAmount} placeholder="Enter amount" min="1" max={pendingBonus > 0 ? pendingBonus : undefined} class="flex-1 px-4 py-2.5 border border-indigo-300 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm" />
+              <button onclick={payBonusDirect} disabled={isPayingBonus || !payBonusAmount || !payoutProofFile} class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm shadow-indigo-600/30 flex items-center gap-2">
+                {#if isPayingBonus}
+                  <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  Wait...
+                {:else}
+                  Pay {payBonusAmount ? 'PKR ' + parseFloat(payBonusAmount).toLocaleString() : 'Now'}
+                {/if}
+              </button>
+            </div>
+          </div>
         {/if}
+
       </div>
     </div>
   </div>
