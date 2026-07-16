@@ -31,8 +31,13 @@ import { requireAuth, requireRole } from './middleware/auth.middleware';
 import { prisma } from './prisma';
 
 app.get('/api/users/fulfillment', requireAuth as any, requireRole(['MANAGER', 'SUPER_ADMIN']) as any, async (req, res) => {
-  const users = await prisma.user.findMany({ where: { role: 'FULFILLMENT' }, select: { id: true, name: true } });
-  res.json(users);
+  try {
+    const users = await prisma.user.findMany({ where: { role: 'FULFILLMENT' }, select: { id: true, name: true } });
+    res.json(users);
+  } catch (err) {
+    console.error('Error fetching fulfillment users:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 import userRoutes from './routes/user.routes';
@@ -41,7 +46,6 @@ app.use('/api/users', userRoutes);
 import companyRoutes from './routes/company.routes';
 app.use('/api/companies', companyRoutes);
 
-
 import payoutRoutes from './routes/payout.routes';
 app.use('/api/payouts', payoutRoutes);
 
@@ -49,8 +53,6 @@ import notificationRoutes from './routes/notification.routes';
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/push', pushRoutes);
-
-
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
@@ -66,14 +68,27 @@ io.on('connection', (socket) => {
     }
   });
 
-
-
-
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
   });
 });
 
+// Global Error Handler for Express
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled Express Error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// Prevent Node process from crashing on unhandled errors/rejections
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 httpServer.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
+

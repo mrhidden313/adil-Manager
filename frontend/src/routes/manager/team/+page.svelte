@@ -233,28 +233,41 @@
 
   function getAgentStats(agent: any) {
     if (agent.role === 'SALES') {
-      const submitted = allTickets.filter(t => t.createdById === agent.id);
+      const submitted = allTickets.filter(t => t.createdById === agent.id && t.status !== 'REJECTED');
       const pending = submitted.filter(t => t.status === 'PENDING').length;
       const approved = submitted.filter(t => t.status === 'APPROVED').length;
       const completedTickets = submitted.filter(t => t.status === 'COMPLETED');
       const completed = completedTickets.length;
       const totalRevenue = completedTickets.reduce((sum, t) => sum + (t.price || 0), 0);
       const earnedBonus = completedTickets.reduce((sum, t) => sum + (t.bonusAmount || 0), 0);
-      // Sum up total individual tickets from all submitted orders
-      const totalTickets = submitted.reduce((sum, t) => sum + (parseInt(t.genericData?.ticketNumber) || 1), 0);
-      const completedTicketsCount = completedTickets.reduce((sum, t) => sum + (parseInt(t.genericData?.ticketNumber) || 1), 0);
+      // Sum up total individual tickets from all submitted active orders
+      const totalTickets = submitted.reduce((sum, t) => {
+        const num = parseInt(t.genericData?.ticketNumber);
+        return sum + (!isNaN(num) && num >= 0 ? num : 1);
+      }, 0);
+      const completedTicketsCount = completedTickets.reduce((sum, t) => {
+        const num = parseInt(t.genericData?.ticketNumber);
+        return sum + (!isNaN(num) && num >= 0 ? num : 1);
+      }, 0);
       return { total: submitted.length, pending, approved, completed, totalRevenue, earnedBonus, totalTickets, completedTicketsCount };
     } else {
-      const assigned = allTickets.filter(t => t.assignedToId === agent.id);
+      const assigned = allTickets.filter(t => t.assignedToId === agent.id && t.status !== 'REJECTED');
       const pendingWork = assigned.filter(t => t.status === 'APPROVED').length;
       const completedWork = assigned.filter(t => t.status === 'COMPLETED');
       const completedWorkCount = completedWork.length;
-      // Sum up total individual tickets from all assigned orders
-      const totalTickets = assigned.reduce((sum, t) => sum + (parseInt(t.genericData?.ticketNumber) || 1), 0);
-      const completedTicketsCount = completedWork.reduce((sum, t) => sum + (parseInt(t.genericData?.ticketNumber) || 1), 0);
+      // Sum up total individual tickets from all assigned active orders
+      const totalTickets = assigned.reduce((sum, t) => {
+        const num = parseInt(t.genericData?.ticketNumber);
+        return sum + (!isNaN(num) && num >= 0 ? num : 1);
+      }, 0);
+      const completedTicketsCount = completedWork.reduce((sum, t) => {
+        const num = parseInt(t.genericData?.ticketNumber);
+        return sum + (!isNaN(num) && num >= 0 ? num : 1);
+      }, 0);
       return { total: assigned.length, pendingWork, completedWork: completedWorkCount, totalTickets, completedTicketsCount };
     }
   }
+
 </script>
 
 <div class="flex h-screen bg-transparent text-slate-800 font-sans">
@@ -452,8 +465,9 @@
         {#if selectedAgent.role === 'SALES'}
           {@const stats = getAgentStats(selectedAgent)}
           {@const agentPayouts = allPayouts.filter(p => p.agentId === selectedAgent.id)}
-          {@const paidBonus = agentPayouts.reduce((sum, p) => sum + p.amount, 0)}
-          {@const pendingBonus = stats.earnedBonus - paidBonus}
+          {@const paidBonus = agentPayouts.filter(p => p.status === 'APPROVED').reduce((sum, p) => sum + p.amount, 0)}
+          {@const pendingBonus = stats.earnedBonus - agentPayouts.filter(p => p.status !== 'REJECTED').reduce((sum, p) => sum + p.amount, 0)}
+
           <div class="space-y-3">
 
             <!-- Revenue Banner -->

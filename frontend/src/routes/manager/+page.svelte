@@ -110,10 +110,13 @@
   let activeTickets = $derived(tickets.filter(t => t.status !== 'REJECTED'));
   let totalAmount = $derived(activeTickets.reduce((acc, t) => acc + (t.price || 0), 0));
   let totalOrders = $derived(activeTickets.length);
-  let totalTickets = $derived(activeTickets.reduce((sum, t) => sum + (parseInt(t.genericData?.ticketNumber) || 1), 0));
+  let totalTickets = $derived(activeTickets.reduce((sum, t) => {
+    const num = parseInt(t.genericData?.ticketNumber);
+    return sum + (!isNaN(num) && num >= 0 ? num : 1);
+  }, 0));
   let totalBonusEarned = $derived(tickets.filter(t => t.status === 'COMPLETED').reduce((acc, t) => acc + (t.bonusAmount || 0), 0));
   let totalBonusPaid = $derived(payouts.filter(p => p.status === 'APPROVED').reduce((acc, p) => acc + p.amount, 0));
-  let totalBonusPending = $derived(totalBonusEarned - payouts.reduce((acc, p) => acc + p.amount, 0));
+  let totalBonusPending = $derived(totalBonusEarned - payouts.filter(p => p.status !== 'REJECTED').reduce((acc, p) => acc + p.amount, 0));
 
   // Group pending bonus by agent
   let agentPendingBonuses = $derived.by(() => {
@@ -121,13 +124,14 @@
     tickets.filter(t => t.status === 'COMPLETED').forEach(t => {
       map.set(t.createdById, (map.get(t.createdById) || 0) + (t.bonusAmount || 0));
     });
-    payouts.forEach(p => {
+    payouts.filter(p => p.status !== 'REJECTED').forEach(p => {
       if (map.has(p.agentId)) {
         map.set(p.agentId, map.get(p.agentId)! - p.amount);
       }
     });
     return map;
   });
+
 
   let filteredTickets = $derived.by(() => {
     return tickets.filter(t => t.status === ordersTab);

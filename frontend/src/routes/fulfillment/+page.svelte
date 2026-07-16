@@ -30,10 +30,18 @@
     return tickets.filter(t => t.status === activeTab);
   });
 
-  let totalOrders = $derived(tickets.length);
-  let pendingOrders = $derived(tickets.filter(t => t.status === 'APPROVED').length);
-  let totalTickets = $derived(tickets.reduce((sum, t) => sum + (parseInt(t.genericData?.ticketNumber) || 1), 0));
-  let earnedBonus = $derived(tickets.filter(t => t.status === 'COMPLETED').reduce((sum, t) => sum + ((parseInt(t.genericData?.ticketNumber) || 1) * 2), 0));
+  let activeTickets = $derived(tickets.filter(t => t.status !== 'REJECTED'));
+  let totalOrders = $derived(activeTickets.length);
+  let pendingOrders = $derived(activeTickets.filter(t => t.status === 'APPROVED').length);
+  let totalTickets = $derived(activeTickets.reduce((sum, t) => {
+    const num = parseInt(t.genericData?.ticketNumber);
+    return sum + (!isNaN(num) && num >= 0 ? num : 1);
+  }, 0));
+  let earnedBonus = $derived(tickets.filter(t => t.status === 'COMPLETED').reduce((sum, t) => {
+    const num = parseInt(t.genericData?.ticketNumber);
+    return sum + ((!isNaN(num) && num >= 0 ? num : 1) * 2);
+  }, 0));
+
 
   async function fetchTickets() {
     const token = getAuthToken();
