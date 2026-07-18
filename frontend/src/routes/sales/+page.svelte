@@ -7,6 +7,7 @@
   import Lightbox from '$lib/components/Lightbox.svelte';
   import TicketHistoryPopover from '$lib/components/TicketHistoryPopover.svelte';
   import { getAuthToken, isImpersonatingSession, exitImpersonation, requireRoleGuard } from '$lib/utils/auth';
+  import { compressImage } from '$lib/utils/image';
 
 
   let tickets: any[] = $state([]);
@@ -147,7 +148,7 @@
   });
 
 
-  function handleCreateTicket(e: Event) {
+  async function handleCreateTicket(e: Event) {
     e.preventDefault();
     if (!proofFile || proofFile.length === 0) return toast.add('Please attach payment proof.', 'error');
     if (!customerName || !amount || parseFloat(amount) <= 0) return toast.add('Please provide valid customer name and amount.', 'error');
@@ -173,6 +174,9 @@
     uploadStatus = 'UPLOADING';
     uploadErrorMsg = '';
 
+    // Compress the image before uploading to save massive network time
+    const compressedProof = await compressImage(fileToUpload);
+
     const formData = new FormData();
     formData.append('transactionId', `TRX-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
     formData.append('price', ticketData.amount);
@@ -186,7 +190,7 @@
       notes: ticketData.notes
     }));
 
-    formData.append('proof', fileToUpload, fileToUpload.name || 'proof.jpg');
+    formData.append('proof', compressedProof, compressedProof.name || 'proof.jpg');
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', (import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', true);

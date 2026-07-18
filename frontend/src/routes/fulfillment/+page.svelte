@@ -8,6 +8,7 @@
   import { ripple } from '$lib/actions/ripple';
 
   import { getAuthToken, requireRoleGuard, isImpersonatingSession, exitImpersonation } from '$lib/utils/auth';
+  import { compressImage } from '$lib/utils/image';
 
   let tickets: any[] = $state([]);
   let selectedTicket: any = $state(null);
@@ -85,7 +86,7 @@
     showModal = true;
   }
 
-  function handleFinishOrder(e: Event) {
+  async function handleFinishOrder(e: Event) {
     e.preventDefault();
     if (!proofFile || proofFile.length === 0 || !selectedTicket) {
       toast.add('Please select a confirmation image to finish the order.', 'error');
@@ -102,9 +103,11 @@
     uploadStatus = 'UPLOADING';
     uploadErrorMsg = '';
 
+    const compressedProof = await compressImage(fileToUpload);
+
     const formData = new FormData();
     formData.append('status', 'COMPLETED');
-    formData.append('fulfillmentProof', fileToUpload, fileToUpload.name || 'proof.jpg');
+    formData.append('fulfillmentProof', compressedProof, compressedProof.name || 'proof.jpg');
 
     const xhr = new XMLHttpRequest();
     xhr.open('PATCH', `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/tickets/${ticketId}/status`, true);

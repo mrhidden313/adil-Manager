@@ -9,6 +9,7 @@
   import LiveLogsTerminal from '$lib/components/LiveLogsTerminal.svelte';
   import TicketHistoryPopover from '$lib/components/TicketHistoryPopover.svelte';
   import { requireRoleGuard, getAuthToken } from '$lib/utils/auth';
+  import { compressImage } from '$lib/utils/image';
 
   
 
@@ -225,11 +226,13 @@
     uploadStatus = 'UPLOADING';
     uploadErrorMsg = '';
 
+    const compressedProof = await compressImage(payoutProofFile);
+
     const token = getAuthToken();
     const formData = new FormData();
     formData.append('agentId', selectedAgentForPayout.id);
     formData.append('amount', payoutAmount);
-    formData.append('proof', payoutProofFile);
+    formData.append('proof', compressedProof, compressedProof.name || 'proof.jpg');
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/payouts/pay`, true);
