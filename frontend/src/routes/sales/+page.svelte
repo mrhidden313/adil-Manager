@@ -34,6 +34,10 @@
   let ticketNumber = $state('');
   let proofFile: FileList | null = $state(null);
   let isSubmitting = $state(false);
+  let uploadProgress = $state(0);
+  let uploadStatus = $state('IDLE'); // IDLE, UPLOADING, SUCCESS, ERROR
+  let uploadErrorMsg = $state('');
+
 
   // Edit Order state
   let showEditModal = $state(false);
@@ -163,54 +167,72 @@
       notes
     };
 
-    // Immediately close modal and give feedback
-    showModal = false;
-    customerName = ''; countryCode = '+92'; phoneDigits = ''; ticketNumber = ''; amount = ''; paymentMethod = 'EASYPAISA'; bankType = ''; notes = ''; proofFile = null;
-    toast.add('Order processing... Uploading in background 🚀', 'success');
+    // Start upload with XHR for progress tracking
+    isSubmitting = true;
+    uploadProgress = 0;
+    uploadStatus = 'UPLOADING';
+    uploadErrorMsg = '';
 
-    // Upload asynchronously without compression
-    (async () => {
-      try {
-        const formData = new FormData();
-        formData.append('transactionId', `TRX-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
-        formData.append('price', ticketData.amount);
-        
-        formData.append('genericData', JSON.stringify({
-          name: ticketData.customerName,
-          phone: ticketData.countryCode + ticketData.phoneDigits,
-          ticketNumber: ticketData.ticketNumber,
-          paymentMethod: ticketData.paymentMethod,
-          bankType: ticketData.bankType,
-          notes: ticketData.notes
-        }));
+    const formData = new FormData();
+    formData.append('transactionId', `TRX-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
+    formData.append('price', ticketData.amount);
+    
+    formData.append('genericData', JSON.stringify({
+      name: ticketData.customerName,
+      phone: ticketData.countryCode + ticketData.phoneDigits,
+      ticketNumber: ticketData.ticketNumber,
+      paymentMethod: ticketData.paymentMethod,
+      bankType: ticketData.bankType,
+      notes: ticketData.notes
+    }));
 
-        formData.append('proof', fileToUpload, fileToUpload.name || 'proof.jpg');
+    formData.append('proof', fileToUpload, fileToUpload.name || 'proof.jpg');
 
-        const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: formData
-        });
-        
-        if (res.ok) {
-          toast.add('Order submitted successfully! You will earn a 10% bonus when completed.', 'success');
-          fetchData();
-        } else {
-          let errMsg = 'Failed to create order';
-          try {
-            const err = await res.json();
-            errMsg = err.error || errMsg;
-          } catch (e) {
-            errMsg = `Server error (${res.status})`;
-          }
-          toast.add(errMsg, 'error');
-        }
-      } catch (err: any) {
-        console.error('Order upload error:', err);
-        toast.add(err?.message || 'Network error while uploading payment proof.', 'error');
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', (import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', true);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        uploadProgress = Math.round((event.loaded / event.total) * 100);
       }
-    })();
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        uploadProgress = 100;
+        uploadStatus = 'SUCCESS';
+        toast.add('Order submitted successfully! You will earn a 10% bonus when completed.', 'success');
+        fetchData();
+        
+        setTimeout(() => {
+          showModal = false;
+          // Reset form
+          customerName = ''; countryCode = '+92'; phoneDigits = ''; ticketNumber = ''; amount = ''; paymentMethod = 'EASYPAISA'; bankType = ''; notes = ''; proofFile = null;
+          isSubmitting = false;
+          uploadStatus = 'IDLE';
+        }, 1500);
+      } else {
+        uploadStatus = 'ERROR';
+        isSubmitting = false;
+        try {
+          const err = JSON.parse(xhr.responseText);
+          uploadErrorMsg = err.error || 'Failed to create order';
+        } catch (e) {
+          uploadErrorMsg = `Server error (${xhr.status})`;
+        }
+      }
+    };
+
+    xhr.onerror = () => {
+      uploadStatus = 'ERROR';
+      isSubmitting = false;
+      uploadErrorMsg = 'Network error while uploading payment proof. Please try again.';
+    };
+
+    xhr.send(formData);
   }
+
 
   async function approvePayout(payoutId: string) {
     const token = getAuthToken();
@@ -540,9 +562,15 @@
         <div>
           <h2 class="text-xl font-bold text-slate-800">Submit New Order</h2>
         </div>
-        <button class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full transition-colors" onclick={() => showModal = false}>
+        <button class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full transition-colors" onclick={() => {
+          if (isSubmitting) {
+            if (!confirm('Upload in progress, cancel anyway?')) return;
+          }
+          showModal = false;
+        }}>
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
+
       </div>
       
       <div class="p-6 overflow-y-auto bg-slate-50/50">
@@ -790,10 +818,32 @@
           </div>
 
           <div class="pt-2">
-            <button type="submit" disabled={isSubmitting} class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 shadow-sm shadow-indigo-600/20 text-sm">
-              {isSubmitting ? 'Uploading...' : 'Submit Order'}
+            {#if uploadStatus === 'ERROR'}
+              <div class="mb-3 p-3 bg-rose-50 text-rose-700 text-sm rounded-xl border border-rose-200">
+                <p class="font-bold mb-1">Upload Failed</p>
+                <p class="text-xs">{uploadErrorMsg}</p>
+              </div>
+            {/if}
+
+            <button type="submit" disabled={isSubmitting || uploadStatus === 'SUCCESS'} class="relative w-full py-3 overflow-hidden bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-90 shadow-sm shadow-indigo-600/20 text-sm">
+              
+              {#if isSubmitting || uploadStatus === 'SUCCESS'}
+                <div class="absolute left-0 top-0 bottom-0 bg-emerald-500 transition-all duration-300 ease-out" style="width: {uploadProgress}%"></div>
+              {/if}
+
+              <div class="relative z-10 flex items-center justify-center">
+                {#if uploadStatus === 'SUCCESS'}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                  100% Success!
+                {:else if isSubmitting}
+                  Uploading {uploadProgress}%...
+                {:else}
+                  Submit Order
+                {/if}
+              </div>
             </button>
           </div>
+
         </form>
       </div>
     </div>

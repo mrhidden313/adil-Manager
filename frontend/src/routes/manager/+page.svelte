@@ -38,6 +38,9 @@
 
   let assignToId = $state('');
   let isSubmitting = $state(false);
+  let uploadProgress = $state(0);
+  let uploadStatus = $state('IDLE');
+  let uploadErrorMsg = $state('');
   let notifications: any[] = $state([]);
   let showNotifications = $state(false);
 
@@ -218,32 +221,60 @@
     if (!payoutProofFile) return toast.add('Please upload a screenshot of the payment.', 'error');
     
     isSubmitting = true;
+    uploadProgress = 0;
+    uploadStatus = 'UPLOADING';
+    uploadErrorMsg = '';
+
     const token = getAuthToken();
     const formData = new FormData();
     formData.append('agentId', selectedAgentForPayout.id);
     formData.append('amount', payoutAmount);
     formData.append('proof', payoutProofFile);
 
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/payouts/pay`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-      if (res.ok) {
-        showPayoutModal = false;
-        payoutProofFile = null;
-        payoutProofPreview = '';
-        payoutAmount = '';
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/payouts/pay`, true);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        uploadProgress = Math.round((event.loaded / event.total) * 100);
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        uploadProgress = 100;
+        uploadStatus = 'SUCCESS';
         fetchData();
         toast.add('Payout sent successfully', 'success');
+
+        setTimeout(() => {
+          showPayoutModal = false;
+          payoutProofFile = null;
+          payoutProofPreview = '';
+          payoutAmount = '';
+          isSubmitting = false;
+          uploadStatus = 'IDLE';
+        }, 1500);
       } else {
-        const err = await res.json();
-        toast.add(err.error || 'Failed to send payout', 'error');
+        uploadStatus = 'ERROR';
+        isSubmitting = false;
+        try {
+          const err = JSON.parse(xhr.responseText);
+          uploadErrorMsg = err.error || 'Failed to send payout';
+        } catch (e) {
+          uploadErrorMsg = `Server error (${xhr.status})`;
+        }
       }
-    } finally {
+    };
+
+    xhr.onerror = () => {
+      uploadStatus = 'ERROR';
       isSubmitting = false;
-    }
+      uploadErrorMsg = 'Network error while uploading payment screenshot. Please try again.';
+    };
+
+    xhr.send(formData);
   }
 
   async function markNotificationAsRead(id: string) {
@@ -773,7 +804,12 @@
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
         <h2 class="text-xl font-black text-slate-800">Pay Bonus</h2>
-        <button class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full hover:bg-slate-100 transition-colors" onclick={() => { showPayoutModal = false; payoutProofPreview = ''; payoutProofFile = null; }}><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        <button class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full hover:bg-slate-100 transition-colors" onclick={() => {
+          if (isSubmitting) {
+            if (!confirm('Upload in progress, cancel anyway?')) return;
+          }
+          showPayoutModal = false; payoutProofPreview = ''; payoutProofFile = null;
+        }}><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
       
       <div class="p-6 bg-slate-50/50">
@@ -812,8 +848,29 @@
       </div>
       
       <div class="p-6 border-t border-slate-100 bg-white">
-        <button onclick={payBonus} disabled={isSubmitting || !payoutProofFile || !payoutAmount} class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors">
-          {isSubmitting ? 'Processing Payout...' : `Send PKR ${payoutAmount ? parseFloat(payoutAmount).toLocaleString() : '0'} Payout`}
+        {#if uploadStatus === 'ERROR'}
+          <div class="mb-3 p-3 bg-rose-50 text-rose-700 text-sm rounded-xl border border-rose-200">
+            <p class="font-bold mb-1">Upload Failed</p>
+            <p class="text-xs">{uploadErrorMsg}</p>
+          </div>
+        {/if}
+
+        <button onclick={payBonus} disabled={isSubmitting || !payoutProofFile || !payoutAmount || uploadStatus === 'SUCCESS'} class="relative w-full overflow-hidden bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-sm hover:bg-indigo-700 disabled:opacity-90 transition-colors">
+          
+          {#if isSubmitting || uploadStatus === 'SUCCESS'}
+            <div class="absolute left-0 top-0 bottom-0 bg-indigo-400 transition-all duration-300 ease-out" style="width: {uploadProgress}%"></div>
+          {/if}
+
+          <div class="relative z-10 flex items-center justify-center">
+            {#if uploadStatus === 'SUCCESS'}
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+              100% Success!
+            {:else if isSubmitting}
+              Uploading {uploadProgress}%...
+            {:else}
+              Send PKR {payoutAmount ? parseFloat(payoutAmount).toLocaleString() : '0'} Payout
+            {/if}
+          </div>
         </button>
       </div>
     </div>

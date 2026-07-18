@@ -16,6 +16,10 @@
   
   let proofFile: FileList | null = $state(null);
   let isSubmitting = $state(false);
+  let uploadProgress = $state(0);
+  let uploadStatus = $state('IDLE');
+  let uploadErrorMsg = $state('');
+
 
   let lightboxSrc = $state('');
   let showLightbox = $state(false);
@@ -83,54 +87,72 @@
 
   function handleFinishOrder(e: Event) {
     e.preventDefault();
-    if (!proofFile || proofFile.length === 0) return toast.add('Please attach confirmation image.', 'error');
-    
+    if (!proofFile || proofFile.length === 0 || !selectedTicket) {
+      toast.add('Please select a confirmation image to finish the order.', 'error');
+      return;
+    }
+
     const token = getAuthToken();
-    
-    // Capture state before clearing
-    const fileToUpload = proofFile[0];
     const ticketId = selectedTicket.id;
-    
-    // Immediately close modal and give feedback
-    showModal = false;
-    proofFile = null;
-    toast.add('Order finishing... Uploading proof in background 🚀', 'success');
-    activeTab = 'COMPLETED'; // Optimistically switch to completed tab
+    const fileToUpload = proofFile[0];
 
-    // Upload asynchronously without compression
-    (async () => {
-      try {
-        const formData = new FormData();
-        formData.append('status', 'COMPLETED');
-        formData.append('fulfillmentProof', fileToUpload, fileToUpload.name || 'proof.jpg');
+    isSubmitting = true;
 
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/tickets/${ticketId}/status`, {
-          method: 'PATCH',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: formData
-        });
-        
-        if (res.status === 401) { localStorage.clear(); window.location.href='/'; return; }
-        if (res.ok) {
-          toast.add('Order marked as completed successfully!', 'success');
-          fetchTickets();
-        } else {
-          let errMsg = 'Failed to finish order';
-          try {
-            const errorData = await res.json();
-            errMsg = errorData.error || errMsg;
-          } catch (e) {
-            errMsg = `Server error (${res.status})`;
-          }
-          toast.add(errMsg, 'error');
-          // Revert tab if failed (optional, user can just refresh)
-        }
-      } catch (err: any) {
-        console.error('Fulfillment upload error:', err);
-        toast.add(err?.message || 'Error uploading confirmation image.', 'error');
+    uploadProgress = 0;
+    uploadStatus = 'UPLOADING';
+    uploadErrorMsg = '';
+
+    const formData = new FormData();
+    formData.append('status', 'COMPLETED');
+    formData.append('fulfillmentProof', fileToUpload, fileToUpload.name || 'proof.jpg');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('PATCH', `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/tickets/${ticketId}/status`, true);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        uploadProgress = Math.round((event.loaded / event.total) * 100);
       }
-    })();
+    };
+
+    xhr.onload = () => {
+      if (xhr.status === 401) { localStorage.clear(); window.location.href='/'; return; }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        uploadProgress = 100;
+        uploadStatus = 'SUCCESS';
+        toast.add('Order marked as completed successfully!', 'success');
+        activeTab = 'COMPLETED';
+        fetchTickets();
+        
+        setTimeout(() => {
+          showModal = false;
+          proofFile = null;
+          isSubmitting = false;
+          uploadStatus = 'IDLE';
+        }, 1500);
+      } else {
+
+        uploadStatus = 'ERROR';
+        isSubmitting = false;
+        try {
+          const errorData = JSON.parse(xhr.responseText);
+          uploadErrorMsg = errorData.error || 'Failed to finish order';
+        } catch (e) {
+          uploadErrorMsg = `Server error (${xhr.status})`;
+        }
+      }
+    };
+
+    xhr.onerror = () => {
+      uploadStatus = 'ERROR';
+      isSubmitting = false;
+      uploadErrorMsg = 'Network error while uploading confirmation image. Please try again.';
+    };
+
+    xhr.send(formData);
   }
+
 </script>
 
 <div class="flex h-screen bg-transparent text-slate-800 font-sans relative">
@@ -360,9 +382,15 @@
           <h2 class="text-xl font-bold text-slate-800">Finish Order</h2>
           <p class="text-xs text-slate-500 mt-0.5">Upload proof of completion</p>
         </div>
-        <button aria-label="Close modal" class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full hover:bg-slate-100 transition-colors" onclick={() => showModal = false}>
+        <button aria-label="Close modal" class="text-slate-400 hover:text-slate-700 bg-slate-50 p-2 rounded-full hover:bg-slate-100 transition-colors" onclick={() => {
+          if (isSubmitting) {
+            if (!confirm('Upload in progress, cancel anyway?')) return;
+          }
+          showModal = false;
+        }}>
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
+
       </div>
       
       <div class="p-6 overflow-y-auto bg-slate-50/50 space-y-4">
@@ -419,16 +447,33 @@
           </div>
           
           <div class="pt-4 border-t border-slate-200">
-            <button type="submit" disabled={isSubmitting} class="w-full bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50 shadow-sm shadow-emerald-600/20 flex justify-center items-center">
-              {#if isSubmitting}
-                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                Processing...
-              {:else}
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-                Mark as Completed
+            {#if uploadStatus === 'ERROR'}
+              <div class="mb-3 p-3 bg-rose-50 text-rose-700 text-sm rounded-xl border border-rose-200">
+                <p class="font-bold mb-1">Upload Failed</p>
+                <p class="text-xs">{uploadErrorMsg}</p>
+              </div>
+            {/if}
+
+            <button type="submit" disabled={isSubmitting || uploadStatus === 'SUCCESS'} class="relative w-full overflow-hidden bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-90 shadow-sm shadow-emerald-600/20 flex justify-center items-center text-sm">
+              
+              {#if isSubmitting || uploadStatus === 'SUCCESS'}
+                <div class="absolute left-0 top-0 bottom-0 bg-teal-500 transition-all duration-300 ease-out" style="width: {uploadProgress}%"></div>
               {/if}
+
+              <div class="relative z-10 flex items-center justify-center">
+                {#if uploadStatus === 'SUCCESS'}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                  100% Success!
+                {:else if isSubmitting}
+                  Uploading {uploadProgress}%...
+                {:else}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                  Mark as Completed
+                {/if}
+              </div>
             </button>
           </div>
+
         </form>
       </div>
     </div>
