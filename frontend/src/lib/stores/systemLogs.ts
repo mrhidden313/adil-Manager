@@ -20,7 +20,7 @@ function getLocalUser() {
 export function playAlertSound() {
   if (typeof window !== 'undefined') {
     try {
-      const audio = new Audio('/notification.wav');
+      const audio = new Audio('/notification.mp3');
       audio.volume = 1.0;
       audio.play().catch(e => console.log('Audio autoplay prevented:', e));
     } catch (e) {

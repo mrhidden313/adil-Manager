@@ -13,7 +13,7 @@ self.addEventListener('push', (event) => {
       body: data.body,
       icon: data.icon || '/logo.png',
       badge: '/logo.png',
-      sound: '/notification.wav',
+      sound: '/notification.mp3',
       data: {
         url: data.url || '/'
       },
