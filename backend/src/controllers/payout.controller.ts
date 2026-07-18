@@ -1,11 +1,11 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { supabase } from '../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 import { sendPushToUser } from './push.controller';
 
-export const createPayout = async (req: AuthRequest, res: Response): Promise<void> => {
+export const createPayout = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { agentId, amount } = req.body;
     const companyId = req.user?.companyId;
@@ -75,13 +75,12 @@ export const createPayout = async (req: AuthRequest, res: Response): Promise<voi
 
     res.status(201).json({ message: 'Payout created successfully', payout });
   } catch (error) {
-    console.error('Create payout error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    next(error);
   }
 };
 
 
-export const listPayouts = async (req: AuthRequest, res: Response): Promise<void> => {
+export const listPayouts = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { role, id: userId, companyId } = req.user!;
     const companyIdStr = companyId as string;
@@ -114,12 +113,11 @@ export const listPayouts = async (req: AuthRequest, res: Response): Promise<void
 
     res.json(payouts);
   } catch (error) {
-    console.error('List payouts error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    next(error);
   }
 };
 
-export const approvePayout = async (req: AuthRequest, res: Response): Promise<void> => {
+export const approvePayout = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const payoutId = req.params.id as string;
     const userId = req.user!.id;
@@ -157,7 +155,6 @@ export const approvePayout = async (req: AuthRequest, res: Response): Promise<vo
 
     res.json({ message: 'Payout approved successfully', payout: updatedPayout });
   } catch (error) {
-    console.error('Approve payout error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    next(error);
   }
 };

@@ -73,11 +73,10 @@ io.on('connection', (socket) => {
   });
 });
 
+import { errorWatchtower } from './middleware/errorWatchtower';
+
 // Global Error Handler for Express
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Unhandled Express Error:', err);
-  res.status(500).json({ error: 'Internal server error' });
-});
+app.use(errorWatchtower);
 
 // Prevent Node process from crashing on unhandled errors/rejections
 process.on('uncaughtException', (err) => {

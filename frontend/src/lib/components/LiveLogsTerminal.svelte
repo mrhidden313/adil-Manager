@@ -57,7 +57,7 @@
           </div>
           <div class="leading-tight break-words font-semibold">{log.message}</div>
           {#if log.details}
-            <div class="mt-0.5 text-[8.5px] opacity-80 break-all bg-black/30 p-1 rounded font-normal">{log.details}</div>
+            <pre class="mt-0.5 text-[8.5px] opacity-80 break-all bg-black/30 p-1 rounded font-normal whitespace-pre-wrap">{log.details}</pre>
           {/if}
         </div>
       {/each}
