@@ -10,6 +10,7 @@
   import { compressImage } from '$lib/utils/image';
 
 
+  let allTicketsStats: any[] = $state([]);
   let tickets: any[] = $state([]);
   let payouts: any[] = $state([]);
   let notifications: any[] = $state([]);
@@ -103,38 +104,67 @@
 
   let showNotifications = $state(false);
 
+  // Pagination & Filtering state
+  let currentPage = $state(1);
+  let hasMoreTickets = $state(false);
+  let isLoadingTickets = $state(false);
+  let searchQuery = $state('');
+  let sortBy = $state('date');
+  let sortOrder = $state('desc');
+
   let activeTab = $state('ORDERS'); // ORDERS, PAYOUTS
 
   // Stats — REJECTED excluded from all totals
-  let activeTickets = $derived(tickets.filter(t => t.status !== 'REJECTED'));
-  let totalSales = $derived(activeTickets.reduce((sum, t) => sum + (t.price || 0), 0));
+  let activeTickets = $derived(allTicketsStats.filter((t: any) => t.status !== 'REJECTED'));
+  let totalSales = $derived(activeTickets.reduce((sum: number, t: any) => sum + (t.price || 0), 0));
   let totalOrders = $derived(activeTickets.length);
-  let totalTickets = $derived(activeTickets.reduce((sum, t) => {
+  let totalTickets = $derived(activeTickets.reduce((sum: number, t: any) => {
     const num = parseInt(t.genericData?.ticketNumber);
     return sum + (!isNaN(num) && num >= 0 ? num : 1);
   }, 0));
-  let pendingBonus = $derived(tickets.filter(t => t.status === 'COMPLETED').reduce((sum, t) => sum + (t.bonusAmount || 0), 0) - payouts.filter(p => p.status !== 'REJECTED').reduce((sum, p) => sum + p.amount, 0));
-  let paidBonus = $derived(payouts.filter(p => p.status === 'APPROVED').reduce((sum, p) => sum + p.amount, 0));
+  let pendingBonus = $derived(allTicketsStats.filter((t: any) => t.status === 'COMPLETED').reduce((sum: number, t: any) => sum + (t.bonusAmount || 0), 0) - payouts.filter((p: any) => p.status !== 'REJECTED').reduce((sum: number, p: any) => sum + p.amount, 0));
+  let paidBonus = $derived(payouts.filter((p: any) => p.status === 'APPROVED').reduce((sum: number, p: any) => sum + p.amount, 0));
 
 
   let ordersTab = $state('ALL'); // ALL, PENDING, APPROVED, COMPLETED
-  let sortedTickets = $derived(tickets.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-  let displayedTickets = $derived(sortedTickets.filter(t => ordersTab === 'ALL' || t.status === ordersTab));
+  let displayedTickets = $derived(tickets);
 
-  async function fetchData() {
+  async function fetchData(loadMore = false) {
+    if (isLoadingTickets) return;
+    isLoadingTickets = true;
+
     const token = getAuthToken();
+    const pageToLoad = loadMore ? currentPage + 1 : 1;
     
-    const [resTickets, resPayouts, resNotif] = await Promise.all([
-      fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', { headers: { 'Authorization': `Bearer ${token}` } }),
+    let ticketsUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/tickets?page=${pageToLoad}&limit=10&status=${ordersTab}&sortBy=${sortBy}&sortOrder=${sortOrder}`;
+    if (searchQuery) ticketsUrl += `&search=${encodeURIComponent(searchQuery)}`;
+    
+    const [resTickets, resStats, resPayouts, resNotif] = await Promise.all([
+      fetch(ticketsUrl, { headers: { 'Authorization': `Bearer ${token}` } }),
+      fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets/stats', { headers: { 'Authorization': `Bearer ${token}` } }),
       fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/payouts', { headers: { 'Authorization': `Bearer ${token}` } }),
       fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/notifications', { headers: { 'Authorization': `Bearer ${token}` } })
     ]);
 
     if (resTickets.status === 401) { localStorage.clear(); sessionStorage.clear(); window.location.href='/'; return; }
     
-    if (resTickets.ok) tickets = await resTickets.json();
+    if (resTickets.ok) {
+      const parsed = await resTickets.json();
+      if (loadMore) {
+        tickets = [...tickets, ...(parsed.data || [])];
+        currentPage = pageToLoad;
+      } else {
+        tickets = parsed.data || [];
+        currentPage = 1;
+      }
+      hasMoreTickets = parsed.metadata?.hasMore || false;
+    }
+    
+    if (resStats.ok) allTicketsStats = await resStats.json();
     if (resPayouts.ok) payouts = await resPayouts.json();
     if (resNotif.ok) notifications = await resNotif.json();
+    
+    isLoadingTickets = false;
   }
 
   let pollInterval: any;
@@ -142,7 +172,7 @@
     if (!requireRoleGuard(['SALES', 'MANAGER', 'SUPER_ADMIN'])) return;
     fetchData();
     pollInterval = setInterval(() => {
-      if (document.visibilityState === 'visible' && !isSubmitting) fetchData();
+      if (document.visibilityState === 'visible' && !isSubmitting && !isLoadingTickets) fetchData(false);
     }, 5000);
     return () => clearInterval(pollInterval);
   });
@@ -466,15 +496,47 @@
         </div>
 
         {#if activeTab === 'ORDERS'}
-          <div class="flex space-x-4 mb-4 overflow-x-auto pb-2 animate-stagger" style="animation-delay: 300ms;">
-            <button onclick={() => ordersTab = 'ALL'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'ALL' ? 'bg-slate-800 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>All</button>
-            <button onclick={() => ordersTab = 'PENDING'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'PENDING' ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Pending</button>
-            <button onclick={() => ordersTab = 'APPROVED'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'APPROVED' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Approved</button>
-            <button onclick={() => ordersTab = 'COMPLETED'} class={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${ordersTab === 'COMPLETED' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>Completed</button>
+          <div class="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide animate-stagger" style="animation-delay: 200ms;">
+            {#each [
+              { key: 'ALL', label: 'All Orders', count: allTicketsStats.length, activeClass: 'bg-gradient-to-br from-indigo-600 to-indigo-800 text-white shadow-lg shadow-indigo-500/30' },
+              { key: 'PENDING', label: 'Pending', count: allTicketsStats.filter((t: any) => t.status === 'PENDING').length, activeClass: 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/30' },
+              { key: 'APPROVED', label: 'Approved', count: allTicketsStats.filter((t: any) => t.status === 'APPROVED').length, activeClass: 'bg-gradient-to-br from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/30' },
+              { key: 'COMPLETED', label: 'Completed', count: allTicketsStats.filter((t: any) => t.status === 'COMPLETED').length, activeClass: 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30' }
+            ] as tb}
+              <button
+                onclick={() => { ordersTab = tb.key; fetchData(false); }}
+                class={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap ${ordersTab === tb.key ? tb.activeClass : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}
+              >
+                {tb.label} ({tb.count})
+              </button>
+            {/each}
           </div>
 
           <div class="space-y-4">
-            {#if displayedTickets.length === 0}
+            <div class="mb-4 flex flex-col md:flex-row gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+              <div class="flex-1">
+                <input type="text" placeholder="Search by name, number, TXN..." bind:value={searchQuery} onkeydown={(e) => e.key === 'Enter' && fetchData(false)} class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-slate-700 bg-slate-50 transition-all">
+              </div>
+              <div class="flex gap-2">
+                <select bind:value={sortBy} onchange={() => fetchData(false)} class="px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-slate-700 bg-slate-50 transition-all cursor-pointer">
+                  <option value="date">Sort by Date</option>
+                  <option value="price">Sort by Price</option>
+                </select>
+                <select bind:value={sortOrder} onchange={() => fetchData(false)} class="px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-slate-700 bg-slate-50 transition-all cursor-pointer">
+                  <option value="desc">Desc</option>
+                  <option value="asc">Asc</option>
+                </select>
+                <button onclick={() => fetchData(false)} class="px-5 py-2.5 bg-indigo-600 text-white font-black uppercase tracking-wide text-xs rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-500/20 active:scale-95 flex items-center justify-center min-w-[80px]">
+                  {#if isLoadingTickets}
+                    <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  {:else}
+                    Search
+                  {/if}
+                </button>
+              </div>
+            </div>
+
+            {#if displayedTickets.length === 0 && !isLoadingTickets}
               <div class="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-100 shadow-sm">No orders found.</div>
             {/if}
             {#each displayedTickets as ticket, index}
@@ -520,6 +582,19 @@
                 </div>
               </div>
             {/each}
+            
+            {#if hasMoreTickets}
+              <div class="flex justify-center pt-4">
+                <button onclick={() => fetchData(true)} disabled={isLoadingTickets} class="px-6 py-3 bg-white border border-slate-200 shadow-sm text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                  {#if isLoadingTickets}
+                    <svg class="animate-spin h-4 w-4 text-indigo-600" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <span>Loading...</span>
+                  {:else}
+                    Load More Orders
+                  {/if}
+                </button>
+              </div>
+            {/if}
           </div>
         {/if}
 

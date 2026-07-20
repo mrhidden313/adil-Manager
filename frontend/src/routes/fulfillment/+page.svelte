@@ -10,8 +10,17 @@
   import { getAuthToken, requireRoleGuard, isImpersonatingSession, exitImpersonation } from '$lib/utils/auth';
   import { compressImage } from '$lib/utils/image';
 
+  let allTicketsStats: any[] = $state([]);
   let tickets: any[] = $state([]);
   let selectedTicket: any = $state(null);
+  
+  // Pagination & Filtering state
+  let currentPage = $state(1);
+  let hasMoreTickets = $state(false);
+  let isLoadingTickets = $state(false);
+  let searchQuery = $state('');
+  let sortBy = $state('date');
+  let sortOrder = $state('desc');
   let showModal = $state(false);
   let showProfile = $state(false);
   
@@ -33,33 +42,53 @@
   // Tabs for Local Agent
   let activeTab = $state('APPROVED'); // APPROVED (To-Do), COMPLETED (Done)
 
-  let filteredTickets = $derived.by(() => {
-    return tickets.filter(t => t.status === activeTab);
-  });
+  let filteredTickets = $derived(tickets);
 
-  let activeTickets = $derived(tickets.filter(t => t.status !== 'REJECTED'));
+  let activeTickets = $derived(allTicketsStats.filter((t: any) => t.status !== 'REJECTED'));
   let totalOrders = $derived(activeTickets.length);
-  let pendingOrders = $derived(activeTickets.filter(t => t.status === 'APPROVED').length);
-  let totalTickets = $derived(activeTickets.reduce((sum, t) => {
+  let pendingOrders = $derived(activeTickets.filter((t: any) => t.status === 'APPROVED').length);
+  let totalTickets = $derived(activeTickets.reduce((sum: number, t: any) => {
     const num = parseInt(t.genericData?.ticketNumber);
     return sum + (!isNaN(num) && num >= 0 ? num : 1);
   }, 0));
-  let earnedBonus = $derived(tickets.filter(t => t.status === 'COMPLETED').reduce((sum, t) => {
+  let earnedBonus = $derived(allTicketsStats.filter((t: any) => t.status === 'COMPLETED').reduce((sum: number, t: any) => {
     const num = parseInt(t.genericData?.ticketNumber);
     return sum + ((!isNaN(num) && num >= 0 ? num : 1) * 2);
   }, 0));
 
 
-  async function fetchTickets() {
+  async function fetchTickets(loadMore = false) {
+    if (isLoadingTickets) return;
+    isLoadingTickets = true;
+
     const token = getAuthToken();
-    const res = await fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (res.status === 401) { localStorage.clear(); sessionStorage.clear(); window.location.href='/'; return; }
-    if (res.ok) {
-      const allTickets = await res.json();
-      tickets = allTickets;
+    const pageToLoad = loadMore ? currentPage + 1 : 1;
+    
+    let ticketsUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/tickets?page=${pageToLoad}&limit=10&status=${activeTab}&sortBy=${sortBy}&sortOrder=${sortOrder}`;
+    if (searchQuery) ticketsUrl += `&search=${encodeURIComponent(searchQuery)}`;
+    
+    const [resTickets, resStats] = await Promise.all([
+      fetch(ticketsUrl, { headers: { 'Authorization': `Bearer ${token}` } }),
+      fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets/stats', { headers: { 'Authorization': `Bearer ${token}` } })
+    ]);
+
+    if (resTickets.status === 401) { localStorage.clear(); sessionStorage.clear(); window.location.href='/'; return; }
+    
+    if (resTickets.ok) {
+      const parsed = await resTickets.json();
+      if (loadMore) {
+        tickets = [...tickets, ...(parsed.data || [])];
+        currentPage = pageToLoad;
+      } else {
+        tickets = parsed.data || [];
+        currentPage = 1;
+      }
+      hasMoreTickets = parsed.metadata?.hasMore || false;
     }
+    
+    if (resStats.ok) allTicketsStats = await resStats.json();
+    
+    isLoadingTickets = false;
   }
 
   let pollInterval: any;
@@ -70,10 +99,10 @@
     fetchTickets();
     
     pollInterval = setInterval(() => {
-      if (document.visibilityState === 'visible' && !isSubmitting) {
-        fetchTickets();
+      if (document.visibilityState === 'visible' && !isSubmitting && !isLoadingTickets) {
+        fetchTickets(false);
       }
-    }, 3000);
+    }, 5000);
   });
 
   onDestroy(() => {
@@ -306,7 +335,30 @@
           </nav>
         </div>
 
-        {#if filteredTickets.length === 0}
+        <div class="mb-6 flex flex-col md:flex-row gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+          <div class="flex-1">
+            <input type="text" placeholder="Search by name, number, TXN..." bind:value={searchQuery} onkeydown={(e) => e.key === 'Enter' && fetchTickets(false)} class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-slate-700 bg-slate-50 transition-all">
+          </div>
+          <div class="flex gap-2">
+            <select bind:value={sortBy} onchange={() => fetchTickets(false)} class="px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-slate-700 bg-slate-50 transition-all cursor-pointer">
+              <option value="date">Sort by Date</option>
+              <option value="price">Sort by Price</option>
+            </select>
+            <select bind:value={sortOrder} onchange={() => fetchTickets(false)} class="px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-slate-700 bg-slate-50 transition-all cursor-pointer">
+              <option value="desc">Desc</option>
+              <option value="asc">Asc</option>
+            </select>
+            <button onclick={() => fetchTickets(false)} class="px-5 py-2.5 bg-indigo-600 text-white font-black uppercase tracking-wide text-xs rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-500/20 active:scale-95 flex items-center justify-center min-w-[80px]">
+              {#if isLoadingTickets}
+                <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              {:else}
+                Search
+              {/if}
+            </button>
+          </div>
+        </div>
+
+        {#if filteredTickets.length === 0 && !isLoadingTickets}
           <div class="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm mt-8">
             <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -370,6 +422,19 @@
               </div>
             {/each}
           </div>
+
+          {#if hasMoreTickets}
+            <div class="flex justify-center pt-8">
+              <button onclick={() => fetchTickets(true)} disabled={isLoadingTickets} class="px-6 py-3 bg-white border border-slate-200 shadow-sm text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                {#if isLoadingTickets}
+                  <svg class="animate-spin h-4 w-4 text-indigo-600" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  <span>Loading...</span>
+                {:else}
+                  Load More Orders
+                {/if}
+              </button>
+            </div>
+          {/if}
         {/if}
       </div>
     </div>

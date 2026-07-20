@@ -14,6 +14,7 @@
   
 
 
+  let allTicketsStats: any[] = $state([]);
   let tickets: any[] = $state([]);
   let payouts: any[] = $state([]);
   let fulfillmentAgents: any[] = $state([]);
@@ -44,6 +45,15 @@
   let uploadErrorMsg = $state('');
   let notifications: any[] = $state([]);
   let showNotifications = $state(false);
+
+  // Pagination & Filtering state
+  let currentPage = $state(1);
+  let hasMoreTickets = $state(false);
+  let isLoadingTickets = $state(false);
+  let searchQuery = $state('');
+  let sortBy = $state('date');
+  let sortOrder = $state('desc');
+  let selectedUserId = $state('');
 
   // Manager edit ticket state
   let editMode = $state(false);
@@ -113,24 +123,24 @@
   let ordersTab = $state('PENDING'); // PENDING, APPROVED, COMPLETED
 
   // Computed Stats — REJECTED tickets excluded from all totals
-  let activeTickets = $derived(tickets.filter(t => t.status !== 'REJECTED'));
-  let totalAmount = $derived(activeTickets.reduce((acc, t) => acc + (t.price || 0), 0));
+  let activeTickets = $derived(allTicketsStats.filter((t: any) => t.status !== 'REJECTED'));
+  let totalAmount = $derived(activeTickets.reduce((acc: number, t: any) => acc + (t.price || 0), 0));
   let totalOrders = $derived(activeTickets.length);
-  let totalTickets = $derived(activeTickets.reduce((sum, t) => {
+  let totalTickets = $derived(activeTickets.reduce((sum: number, t: any) => {
     const num = parseInt(t.genericData?.ticketNumber);
     return sum + (!isNaN(num) && num >= 0 ? num : 1);
   }, 0));
-  let totalBonusEarned = $derived(tickets.filter(t => t.status === 'COMPLETED').reduce((acc, t) => acc + (t.bonusAmount || 0), 0));
-  let totalBonusPaid = $derived(payouts.filter(p => p.status === 'APPROVED').reduce((acc, p) => acc + p.amount, 0));
-  let totalBonusPending = $derived(totalBonusEarned - payouts.filter(p => p.status !== 'REJECTED').reduce((acc, p) => acc + p.amount, 0));
+  let totalBonusEarned = $derived(allTicketsStats.filter((t: any) => t.status === 'COMPLETED').reduce((acc: number, t: any) => acc + (t.bonusAmount || 0), 0));
+  let totalBonusPaid = $derived(payouts.filter((p: any) => p.status === 'APPROVED').reduce((acc: number, p: any) => acc + p.amount, 0));
+  let totalBonusPending = $derived(totalBonusEarned - payouts.filter((p: any) => p.status !== 'REJECTED').reduce((acc: number, p: any) => acc + p.amount, 0));
 
   // Group pending bonus by agent
   let agentPendingBonuses = $derived.by(() => {
     const map = new Map<string, number>();
-    tickets.filter(t => t.status === 'COMPLETED').forEach(t => {
+    allTicketsStats.filter((t: any) => t.status === 'COMPLETED').forEach((t: any) => {
       map.set(t.createdById, (map.get(t.createdById) || 0) + (t.bonusAmount || 0));
     });
-    payouts.filter(p => p.status !== 'REJECTED').forEach(p => {
+    payouts.filter((p: any) => p.status !== 'REJECTED').forEach((p: any) => {
       if (map.has(p.agentId)) {
         map.set(p.agentId, map.get(p.agentId)! - p.amount);
       }
@@ -140,14 +150,24 @@
 
 
   let filteredTickets = $derived.by(() => {
-    return tickets.filter(t => t.status === ordersTab);
+    // API already filters by status, so we just return the fetched list
+    return tickets;
   });
 
-  async function fetchData() {
-    const token = getAuthToken();
+  async function fetchData(loadMore = false) {
+    if (isLoadingTickets) return;
+    isLoadingTickets = true;
     
-    const [resTickets, resTeam, resPayouts, resNotif] = await Promise.all([
-      fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets', { headers: { 'Authorization': `Bearer ${token}` } }),
+    const token = getAuthToken();
+    const pageToLoad = loadMore ? currentPage + 1 : 1;
+    
+    let ticketsUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/tickets?page=${pageToLoad}&limit=10&status=${ordersTab}&sortBy=${sortBy}&sortOrder=${sortOrder}`;
+    if (searchQuery) ticketsUrl += `&search=${encodeURIComponent(searchQuery)}`;
+    if (selectedUserId) ticketsUrl += `&userId=${selectedUserId}`;
+    
+    const [resTickets, resStats, resTeam, resPayouts, resNotif] = await Promise.all([
+      fetch(ticketsUrl, { headers: { 'Authorization': `Bearer ${token}` } }),
+      fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/tickets/stats', { headers: { 'Authorization': `Bearer ${token}` } }),
       fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/users/team', { headers: { 'Authorization': `Bearer ${token}` } }),
       fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/payouts', { headers: { 'Authorization': `Bearer ${token}` } }),
       fetch((import.meta.env.VITE_API_URL || 'http://localhost:3000') + '/api/notifications', { headers: { 'Authorization': `Bearer ${token}` } })
@@ -155,7 +175,19 @@
 
     if (resTickets.status === 401) { localStorage.clear(); sessionStorage.clear(); window.location.href='/'; return; }
     
-    if (resTickets.ok) tickets = await resTickets.json();
+    if (resTickets.ok) {
+      const parsed = await resTickets.json();
+      if (loadMore) {
+        tickets = [...tickets, ...(parsed.data || [])];
+        currentPage = pageToLoad;
+      } else {
+        tickets = parsed.data || [];
+        currentPage = 1;
+      }
+      hasMoreTickets = parsed.metadata?.hasMore || false;
+    }
+    
+    if (resStats.ok) allTicketsStats = await resStats.json();
     if (resPayouts.ok) payouts = await resPayouts.json();
     if (resNotif.ok) notifications = await resNotif.json();
     
@@ -164,6 +196,8 @@
       fulfillmentAgents = team.filter((u: any) => u.role === 'FULFILLMENT' && u.isActive);
       salesAgents = team.filter((u: any) => u.role === 'SALES' && u.isActive);
     }
+    
+    isLoadingTickets = false;
   }
 
   let pollInterval: any;
@@ -171,7 +205,7 @@
     if (!requireRoleGuard(['MANAGER', 'SUPER_ADMIN'])) return;
     fetchData();
     pollInterval = setInterval(() => {
-      if (document.visibilityState === 'visible' && !isSubmitting) fetchData();
+      if (document.visibilityState === 'visible' && !isSubmitting && !isLoadingTickets) fetchData(false);
     }, 5000);
     return () => clearInterval(pollInterval);
   });
@@ -478,13 +512,13 @@
         {#if activeTab === 'ORDERS'}
           <div class="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide animate-stagger" style="animation-delay: 200ms;">
             {#each [
-              { key: 'PENDING', label: 'Pending', count: tickets.filter(t => t.status === 'PENDING').length, activeClass: 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/30', dotClass: 'bg-white/70' },
-              { key: 'APPROVED', label: 'Approved', count: tickets.filter(t => t.status === 'APPROVED').length, activeClass: 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30', dotClass: 'bg-white/70' },
-              { key: 'COMPLETED', label: 'Completed', count: tickets.filter(t => t.status === 'COMPLETED').length, activeClass: 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30', dotClass: 'bg-white/70' },
-              { key: 'REJECTED', label: 'Rejected', count: tickets.filter(t => t.status === 'REJECTED').length, activeClass: 'bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/30', dotClass: 'bg-white/70' }
+              { key: 'PENDING', label: 'Pending', count: allTicketsStats.filter((t: any) => t.status === 'PENDING').length, activeClass: 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/30', dotClass: 'bg-white/70' },
+              { key: 'APPROVED', label: 'Approved', count: allTicketsStats.filter((t: any) => t.status === 'APPROVED').length, activeClass: 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30', dotClass: 'bg-white/70' },
+              { key: 'COMPLETED', label: 'Completed', count: allTicketsStats.filter((t: any) => t.status === 'COMPLETED').length, activeClass: 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30', dotClass: 'bg-white/70' },
+              { key: 'REJECTED', label: 'Rejected', count: allTicketsStats.filter((t: any) => t.status === 'REJECTED').length, activeClass: 'bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/30', dotClass: 'bg-white/70' }
             ] as tb}
               <button
-                onclick={() => ordersTab = tb.key}
+                onclick={() => { ordersTab = tb.key; fetchData(false); }}
                 class={`flex-shrink-0 flex flex-col items-center justify-center px-4 py-2.5 rounded-2xl text-xs font-bold transition-all duration-300 min-w-[80px] border ${ordersTab === tb.key ? tb.activeClass + ' border-transparent scale-[1.03]' : 'bg-white/60 backdrop-blur-sm text-slate-600 border-slate-200/80 hover:bg-white hover:shadow-md'}`}
               >
                 <span class={`text-lg font-black leading-none ${ordersTab === tb.key ? 'text-white' : 'text-slate-800'}`}>{tb.count}</span>
@@ -495,7 +529,43 @@
 
 
           <div class="space-y-4">
-            {#if filteredTickets.length === 0}
+            
+            <div class="mb-4 flex flex-col md:flex-row gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+              <div class="flex-1">
+                <input type="text" placeholder="Search by name, number, TXN..." bind:value={searchQuery} onkeydown={(e) => e.key === 'Enter' && fetchData(false)} class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-slate-700 bg-slate-50 transition-all">
+              </div>
+              <div class="flex gap-2">
+                <select bind:value={sortBy} onchange={() => fetchData(false)} class="px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-slate-700 bg-slate-50 transition-all cursor-pointer">
+                  <option value="date">Sort by Date</option>
+                  <option value="price">Sort by Price</option>
+                </select>
+                <select bind:value={sortOrder} onchange={() => fetchData(false)} class="px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold text-slate-700 bg-slate-50 transition-all cursor-pointer">
+                  <option value="desc">Desc</option>
+                  <option value="asc">Asc</option>
+                </select>
+                <button onclick={() => fetchData(false)} class="px-5 py-2.5 bg-indigo-600 text-white font-black uppercase tracking-wide text-xs rounded-xl hover:bg-indigo-700 transition-all shadow-md shadow-indigo-500/20 active:scale-95 flex items-center justify-center min-w-[80px]">
+                  {#if isLoadingTickets}
+                    <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  {:else}
+                    Search
+                  {/if}
+                </button>
+              </div>
+            </div>
+
+            {#if selectedUserId}
+              <div class="flex items-center gap-2 mb-2 px-1">
+                <span class="text-xs font-bold text-slate-500 uppercase">Filtered by user:</span>
+                <span class="px-3 py-1 bg-indigo-100 text-indigo-700 font-bold rounded-lg text-xs border border-indigo-200 flex items-center gap-2">
+                  User ID: {selectedUserId.substring(0,6)}...
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <svg onclick={() => { selectedUserId = ''; fetchData(false); }} xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 cursor-pointer hover:text-indigo-900" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                </span>
+              </div>
+            {/if}
+
+            {#if filteredTickets.length === 0 && !isLoadingTickets}
               <div class="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-100 shadow-sm">No orders found in this status.</div>
             {/if}
             {#each filteredTickets as ticket, index}
@@ -509,17 +579,17 @@
                       <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-amber-50 text-amber-700 border-amber-200">🎫 {ticket.genericData.ticketNumber} tickets</span>
                     {/if}
                     {#if ticket.assignedTo}
-                      <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-indigo-50 text-indigo-700 border-indigo-200 flex items-center gap-1">
+                      <button onclick={(e) => { e.stopPropagation(); selectedUserId = ticket.assignedToId; fetchData(false); }} class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200 flex items-center gap-1 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                         <span>Assigned to: {ticket.assignedTo.name}</span>
-                      </span>
+                      </button>
                     {/if}
                   </div>
                   <p class="font-bold text-slate-800 text-lg truncate w-[200px] sm:w-[300px] md:w-auto">{ticket.genericData?.name || ticket.transactionId}</p>
                   <div class="flex items-center gap-3 mt-1 text-xs font-medium text-slate-500 flex-wrap">
-                    <span>By: {ticket.createdBy?.name}</span>
+                    <button onclick={(e) => { e.stopPropagation(); selectedUserId = ticket.createdById; fetchData(false); }} class="hover:text-indigo-600 transition-colors">By: {ticket.createdBy?.name}</button>
                     {#if ticket.assignedTo}
-                      <span class="text-indigo-600 font-semibold">• Assigned Agent: {ticket.assignedTo.name}</span>
+                      <button onclick={(e) => { e.stopPropagation(); selectedUserId = ticket.assignedToId; fetchData(false); }} class="text-indigo-600 font-semibold hover:text-indigo-800 transition-colors">• Assigned Agent: {ticket.assignedTo.name}</button>
                     {/if}
                     <div class="flex items-center gap-1.5 text-slate-400">
                       <span>{new Date(ticket.createdAt).toLocaleDateString()}</span>
@@ -538,6 +608,19 @@
                 {/if}
               </div>
             {/each}
+            
+            {#if hasMoreTickets}
+              <div class="flex justify-center pt-4">
+                <button onclick={() => fetchData(true)} disabled={isLoadingTickets} class="px-6 py-3 bg-white border border-slate-200 shadow-sm text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                  {#if isLoadingTickets}
+                    <svg class="animate-spin h-4 w-4 text-indigo-600" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <span>Loading...</span>
+                  {:else}
+                    Load More Orders
+                  {/if}
+                </button>
+              </div>
+            {/if}
           </div>
         {/if}
 

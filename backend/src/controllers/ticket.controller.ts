@@ -127,12 +127,53 @@ export const createTicket = async (req: AuthRequest, res: Response, next: NextFu
 };
 
 
+export const getTicketStats = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { role, id: userId, companyId } = req.user!;
+    const companyIdStr = companyId as string;
+
+    const selectData = {
+      id: true,
+      status: true,
+      price: true,
+      bonusAmount: true,
+      genericData: true,
+      createdById: true,
+      assignedToId: true,
+      transactionId: true,
+      createdAt: true
+    };
+
+    let tickets;
+    if (role === 'SUPER_ADMIN') {
+      tickets = await prisma.ticket.findMany({ select: selectData });
+    } else if (role === 'MANAGER') {
+      tickets = await prisma.ticket.findMany({ where: { companyId: companyIdStr }, select: selectData });
+    } else if (role === 'SALES') {
+      tickets = await prisma.ticket.findMany({ where: { createdById: userId, companyId: companyIdStr }, select: selectData });
+    } else if (role === 'FULFILLMENT') {
+      tickets = await prisma.ticket.findMany({ where: { assignedToId: userId, companyId: companyIdStr }, select: selectData });
+    }
+
+    res.json(tickets);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const listTickets = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { role, id: userId, companyId } = req.user!;
-    let tickets;
-
     const companyIdStr = companyId as string;
+    
+    // Pagination & Filtering
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 0; // 0 means no pagination (backward compatibility)
+    const search = req.query.search as string || '';
+    const sortBy = req.query.sortBy as string || 'date';
+    const sortOrder = (req.query.sortOrder as string || 'desc').toLowerCase();
+    const statusFilter = req.query.status as any;
+    const userFilterId = req.query.userId as string;
 
     const includeData: any = { 
       createdBy: { select: { name: true, role: true, email: true } },
@@ -149,19 +190,77 @@ export const listTickets = async (req: AuthRequest, res: Response, next: NextFun
       }
     };
 
-
-
-    if (role === 'SUPER_ADMIN') {
-      tickets = await prisma.ticket.findMany({ include: includeData });
-    } else if (role === 'MANAGER') {
-      tickets = await prisma.ticket.findMany({ where: { companyId: companyIdStr }, include: includeData });
-    } else if (role === 'SALES') {
-      tickets = await prisma.ticket.findMany({ where: { createdById: userId, companyId: companyIdStr }, include: includeData });
-    } else if (role === 'FULFILLMENT') {
-      tickets = await prisma.ticket.findMany({ where: { assignedToId: userId, companyId: companyIdStr }, include: includeData });
+    let whereClause: any = {};
+    if (role !== 'SUPER_ADMIN') {
+      whereClause.companyId = companyIdStr;
+    }
+    if (role === 'SALES') {
+      whereClause.createdById = userId;
+    }
+    if (role === 'FULFILLMENT') {
+      whereClause.assignedToId = userId;
     }
 
-    res.json(tickets);
+    if (statusFilter && statusFilter !== 'ALL') {
+      whereClause.status = statusFilter;
+    }
+    
+    if (userFilterId) {
+      whereClause.OR = [
+        ...(whereClause.OR || []),
+        { createdById: userFilterId },
+        { assignedToId: userFilterId }
+      ];
+    }
+
+    if (search) {
+      const searchNumber = parseFloat(search);
+      whereClause.OR = [
+        ...(whereClause.OR || []),
+        { transactionId: { contains: search, mode: 'insensitive' } },
+        {
+          genericData: {
+            path: ['name'],
+            string_contains: search
+          }
+        },
+        {
+          genericData: {
+            path: ['ticketNumber'],
+            string_contains: search
+          }
+        }
+      ];
+    }
+
+    let orderBy: any = {};
+    if (sortBy === 'price') {
+      orderBy = { price: sortOrder === 'asc' ? 'asc' : 'desc' };
+    } else {
+      orderBy = { createdAt: sortOrder === 'asc' ? 'asc' : 'desc' };
+    }
+
+    if (limit > 0) {
+      const skip = (page - 1) * limit;
+      const [tickets, total] = await Promise.all([
+        prisma.ticket.findMany({
+          where: whereClause,
+          include: includeData,
+          orderBy,
+          skip,
+          take: limit
+        }),
+        prisma.ticket.count({ where: whereClause })
+      ]);
+      res.json({ data: tickets, metadata: { total, page, limit, hasMore: skip + tickets.length < total } });
+    } else {
+      const tickets = await prisma.ticket.findMany({
+        where: whereClause,
+        include: includeData,
+        orderBy
+      });
+      res.json(tickets);
+    }
   } catch (error) {
     next(error);
   }
