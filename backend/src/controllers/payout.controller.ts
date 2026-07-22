@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { supabase } from '../lib/supabase';
+import { uploadToCloudinary } from '../lib/cloudinary';
 import { v4 as uuidv4 } from 'uuid';
 import { sendPushToUser } from './push.controller';
 
@@ -29,22 +30,14 @@ export const createPayout = async (req: AuthRequest, res: Response, next: NextFu
     }
 
     // Upload proof image
-    const fileExt = file.originalname.split('.').pop();
-    const fileName = `payout_${uuidv4()}.${fileExt}`;
-    
-    const { error: uploadError } = await supabase
-      .storage
-      .from('proofs')
-      .upload(fileName, file.buffer, {
-        contentType: file.mimetype
-      });
-
-    if (uploadError) {
+    let publicUrl = '';
+    try {
+      publicUrl = await uploadToCloudinary(file.buffer, 'payouts');
+    } catch (uploadError) {
+      console.error('Cloudinary payout upload error:', uploadError);
       res.status(500).json({ error: 'Failed to upload image' });
       return;
     }
-
-    const { data: { publicUrl } } = supabase.storage.from('proofs').getPublicUrl(fileName);
 
     // Create payout
     const payout = await prisma.payout.create({

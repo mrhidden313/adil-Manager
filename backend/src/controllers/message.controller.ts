@@ -4,6 +4,7 @@ import { prisma } from '../prisma';
 import { io } from '../socket';
 import webpush from 'web-push';
 import { supabase } from '../lib/supabase';
+import { uploadToCloudinary } from '../lib/cloudinary';
 import { v4 as uuidv4 } from 'uuid';
 
 webpush.setVapidDetails(
@@ -76,16 +77,14 @@ export const sendMessage = async (req: AuthRequest, res: Response): Promise<void
     let imageUrl = null;
 
     if (file) {
-      const fileExt = file.originalname.split('.').pop();
-      const fileName = `chat_${uuidv4()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('proofs')
-        .upload(fileName, file.buffer, { contentType: file.mimetype });
-
-      if (!uploadError) {
-        const { data: { publicUrl } } = supabase.storage.from('proofs').getPublicUrl(fileName);
-        imageUrl = publicUrl;
+      try {
+        imageUrl = await uploadToCloudinary(file.buffer, 'chat');
+      } catch (uploadError) {
+        console.error('Cloudinary chat upload error:', uploadError);
+        // We can either return an error or continue without the image. For now we continue without it or fail.
+        // Failing is safer to not lose the image silently
+        res.status(500).json({ error: 'Failed to upload chat image' });
+        return;
       }
     }
     

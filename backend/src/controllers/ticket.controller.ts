@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { supabase } from '../lib/supabase';
+import { uploadToCloudinary } from '../lib/cloudinary';
 import { v4 as uuidv4 } from 'uuid';
 import { io } from '../socket';
 import { sendPushToUser } from './push.controller';
@@ -33,32 +34,22 @@ export const createTicket = async (req: AuthRequest, res: Response, next: NextFu
     const ticketPrice = parseFloat(price) || 0;
     const bonusAmount = ticketPrice * 0.10; // 10% commission
 
-    // Upload to Supabase
-    const fileExt = file.originalname.split('.').pop();
-    const fileName = `${uuidv4()}.${fileExt}`;
-    
-    const { error: uploadError } = await supabase
-      .storage
-      .from('proofs')
-      .upload(fileName, file.buffer, {
-        contentType: file.mimetype
-      });
-
-    if (uploadError) {
-      console.error('Supabase upload error:', uploadError);
+    // Upload to Cloudinary
+    let paymentProofUrl = '';
+    try {
+      paymentProofUrl = await uploadToCloudinary(file.buffer, 'proofs');
+    } catch (uploadError: any) {
+      console.error('Cloudinary upload error:', uploadError);
       io.to(`company_${companyId}`).emit('global_log_broadcast', {
         type: 'ERROR',
         userName: req.user?.name || 'Sales Agent',
         userRole: req.user?.role || 'SALES',
-        message: `Upload Failed: TXN #${transactionId} (Supabase Error)`,
+        message: `Upload Failed: TXN #${transactionId} (Cloudinary Error)`,
         details: uploadError?.message || 'Storage error while uploading proof'
       });
       res.status(500).json({ error: 'Failed to upload image' });
       return;
     }
-
-    const { data: { publicUrl } } = supabase.storage.from('proofs').getPublicUrl(fileName);
-    const paymentProofUrl = publicUrl;
 
     let parsedGenericData: any = {};
     if (genericData) {
@@ -303,31 +294,20 @@ export const updateTicketStatus = async (req: AuthRequest, res: Response, next: 
       const file = req.file;
       
       if (file) {
-        const fileExt = file.originalname.split('.').pop();
-        const fileName = `fulfillment_${uuidv4()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase
-          .storage
-          .from('proofs')
-          .upload(fileName, file.buffer, {
-            contentType: file.mimetype
-          });
-
-        if (uploadError) {
-          console.error('Supabase upload error:', uploadError);
+        try {
+          uploadedUrl = await uploadToCloudinary(file.buffer, 'proofs');
+        } catch (uploadError: any) {
+          console.error('Cloudinary upload error:', uploadError);
           io.to(`company_${existingTicket.companyId}`).emit('global_log_broadcast', {
             type: 'ERROR',
             userName: req.user?.name || 'Local Agent',
             userRole: req.user?.role || 'FULFILLMENT',
             message: `Proof Upload Failed for Order #${existingTicket.transactionId}`,
-            details: uploadError?.message || 'Supabase storage upload error'
+            details: uploadError?.message || 'Cloudinary storage upload error'
           });
-          res.status(500).json({ error: 'Failed to upload video proof' });
+          res.status(500).json({ error: 'Failed to upload image proof' });
           return;
         }
-
-        const { data: { publicUrl } } = supabase.storage.from('proofs').getPublicUrl(fileName);
-        uploadedUrl = publicUrl;
       }
 
       if (uploadedUrl) {

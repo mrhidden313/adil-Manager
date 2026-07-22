@@ -114,6 +114,7 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
 };
 
 import { supabase } from '../lib/supabase';
+import { uploadToCloudinary } from '../lib/cloudinary';
 import { v4 as uuidv4 } from 'uuid';
 
 export const updateProfile = async (req: Request, res: Response): Promise<void> => {
@@ -136,24 +137,13 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
     }
 
     if (file) {
-      const fileExt = file.originalname.split('.').pop();
-      const fileName = `profile_${userId}_${uuidv4()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase
-        .storage
-        .from('proofs') // using same bucket for simplicity
-        .upload(fileName, file.buffer, {
-          contentType: file.mimetype
-        });
-
-      if (uploadError) {
-        console.error('Supabase upload error:', uploadError);
+      try {
+        updateData.profilePictureUrl = await uploadToCloudinary(file.buffer, 'profiles');
+      } catch (uploadError) {
+        console.error('Cloudinary upload error:', uploadError);
         res.status(500).json({ error: 'Failed to upload profile picture' });
         return;
       }
-
-      const { data: { publicUrl } } = supabase.storage.from('proofs').getPublicUrl(fileName);
-      updateData.profilePictureUrl = publicUrl;
     }
 
     if (Object.keys(updateData).length === 0) {
