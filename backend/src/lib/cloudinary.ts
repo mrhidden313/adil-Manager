@@ -33,7 +33,7 @@ export const uploadToCloudinary = (buffer: Buffer, folder: string): Promise<stri
         format: 'webp', // Auto compress and format
         quality: 'auto'
       },
-      (error, result) => {
+      (error: any, result: any) => {
         if (result) {
           resolve(result.secure_url);
         } else {
